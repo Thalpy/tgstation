@@ -14,6 +14,10 @@
 #define NO_REACT		(1<<7)	// Applied to a reagent holder, the contents will not react with each other.
 #define INSTANT_REACT   (1<<8)  // Applied to a reagent holder, all of the reactions in the reagents datum will be instant. Meant to be used for things like smoke effects where reactions aren't meant to occur
 
+//weakness flags for reagent_holders
+#define PH_WEAK 		(1<<9) //weak to pH <2 and >14
+#define TEMP_WEAK 		(1<<10) //weak to temperatures over 500
+
 // Is an open container for all intents and purposes.
 #define OPENCONTAINER 	(REFILLABLE | DRAINABLE | TRANSPARENT)
 
@@ -44,10 +48,6 @@
 #define CONDIMASTER_STYLE_FALLBACK "_"
 
 #define ALLERGIC_REMOVAL_SKIP "Allergy"
-
-//container_flags
-#define PH_WEAK 		(1 << 0)
-#define TEMP_WEAK 		(1 << 1)
 
 //Used in holder.dm/equlibrium.dm to set values and volume limits
 #define CHEMICAL_QUANTISATION_LEVEL 0.0001 //stops floating point errors causing issues with checking reagent amounts

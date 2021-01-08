@@ -16,7 +16,6 @@
 	var/fill_icon_state = null // Optional custom name for reagent fill icon_state prefix
 	var/container_HP = 2
 	var/cached_icon
-	var/container_flags
 
 /obj/item/reagent_containers/Initialize(mapload, vol)
 	. = ..()
@@ -147,7 +146,7 @@
 //melts plastic beakers
 /obj/item/reagent_containers/microwave_act(obj/machinery/microwave/M)
 	reagents.expose_temperature(1000)
-	if(container_flags & TEMP_WEAK)
+	if(reagent_flags & TEMP_WEAK)
 		visible_message("<span class='notice'>[icon2html(src, viewers(DEFAULT_MESSAGE_RANGE, src))] [src]'s melts from the temperature!</span>")
 		playsound(src, 'sound/chemistry/heatmelt.ogg', 80, 1)
 		qdel(src)
@@ -159,13 +158,13 @@
 	temp_check()
 
 /obj/item/reagent_containers/proc/temp_check()
-	if(container_flags & TEMP_WEAK)
+	if(reagent_flags & TEMP_WEAK)
 		if(reagents.chem_temp >= 444)//assuming polypropylene
 			START_PROCESSING(SSobj, src)
 
 //melts glass beakers
 /obj/item/reagent_containers/proc/pH_check()
-	if(container_flags & PH_WEAK)
+	if(reagent_flags & PH_WEAK)
 		if((reagents.pH < 1.5) || (reagents.pH > 12.5)) //superbases/acids don't exist anymore
 			START_PROCESSING(SSobj, src)
 
@@ -198,7 +197,7 @@
 		cached_icon = icon_state
 	var/damage
 	var/cause
-	if(container_flags & PH_WEAK)
+	if(reagent_flags & PH_WEAK)
 		if(reagents.pH < 2)
 			damage = (2 - reagents.pH)/20
 			cause = "from the caustic acidity"
@@ -209,7 +208,7 @@
 			cause = "from the astringent alkalinity"
 			playsound(get_turf(src), 'sound/chemistry/bufferadd.ogg', 50, 1)
 
-	if(container_flags & TEMP_WEAK)
+	if(reagent_flags & TEMP_WEAK)
 		if(reagents.chem_temp >= 444)
 			if(damage)
 				damage += (reagents.chem_temp/444)/5

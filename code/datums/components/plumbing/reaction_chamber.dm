@@ -37,7 +37,6 @@
 	//everything for every chemical removed, wich isn't a good option either.
 	RC.on_reagent_change(reagents) //We need to check it now, because some reactions leave nothing left.
 
-
 /datum/component/plumbing/reaction_chamber/transfer_to(datum/component/plumbing/target, amount, reagent, datum/ductnet/net)
 	if(reagents.isReacting == TRUE) //Let the thing react in peace
 		return
