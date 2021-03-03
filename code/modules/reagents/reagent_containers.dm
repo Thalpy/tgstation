@@ -14,6 +14,8 @@
 	var/spillable = FALSE
 	var/list/fill_icon_thresholds = null
 	var/fill_icon_state = null // Optional custom name for reagent fill icon_state prefix
+	///Default purity override of reagents added by list_reagents
+	var/purity_override = null
 
 /obj/item/reagent_containers/Initialize(mapload, vol)
 	. = ..()
@@ -23,7 +25,7 @@
 	if(spawned_disease)
 		var/datum/disease/F = new spawned_disease()
 		var/list/data = list("viruses"= list(F))
-		reagents.add_reagent(/datum/reagent/blood, disease_amount, data)
+		reagents.add_reagent(/datum/reagent/blood, disease_amount, data, added_purity = purity_override)
 
 	add_initial_reagents()
 
