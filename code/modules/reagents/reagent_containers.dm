@@ -25,7 +25,7 @@
 	if(spawned_disease)
 		var/datum/disease/F = new spawned_disease()
 		var/list/data = list("viruses"= list(F))
-		reagents.add_reagent(/datum/reagent/blood, disease_amount, data, added_purity = purity_override)
+		reagents.add_reagent(/datum/reagent/blood, disease_amount, data)
 
 	add_initial_reagents()
 
@@ -46,7 +46,7 @@
 
 /obj/item/reagent_containers/proc/add_initial_reagents()
 	if(list_reagents)
-		reagents.add_reagent_list(list_reagents)
+		reagents.add_reagent_list(list_reagents, purity_override = purity_override)
 
 /obj/item/reagent_containers/attack_self(mob/user)
 	if(possible_transfer_amounts.len)

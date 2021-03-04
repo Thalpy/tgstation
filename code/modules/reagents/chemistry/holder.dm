@@ -243,11 +243,16 @@
 		handle_reactions()
 	return TRUE
 
-/// Like add_reagent but you can enter a list. Format it like this: list(/datum/reagent/toxin = 10, "beer" = 15)
-/datum/reagents/proc/add_reagent_list(list/list_reagents, list/data=null)
+/* Like add_reagent but you can enter a list. Format it like this: list(/datum/reagent/toxin = 10, "beer" = 15)
+ * Arguments:
+ * * list_reagents - the lsit of reagents with associated volumes
+ * * data - any data to transfer to the reagents (See blood)
+ * * purity_override - the purity to force all reagents within the list to be.
+ */
+/datum/reagents/proc/add_reagent_list(list/list_reagents, list/data=null, purity_override)
 	for(var/r_id in list_reagents)
 		var/amt = list_reagents[r_id]
-		add_reagent(r_id, amt, data)
+		add_reagent(r_id, amt, data, added_purity = purity_override)
 
 
 /// Remove a specific reagent
