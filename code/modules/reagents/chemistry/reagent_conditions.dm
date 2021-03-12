@@ -1,6 +1,7 @@
 
 #define PHASE_PRIORITY_DEFAULT 0 //the default phase that any % will be filled in by
 #define PHASE_PRIORITY_STANDARD 1 //Stuff like solid and liquids - any phases above any others
+#define PHASE_PRIORITY_HIGH 2 //Stuff like plasma/ionised reagents
 //if you need more - then either define a higher order or just increase your number
 /*
 * A datapacket for setting reactions/reagents/conditions for reagents on creation OR for recipes
@@ -13,13 +14,11 @@
  * Both of above are dervived from holder/reagents datum
  * Highly recommended that you edit these vars from the calulator linked in the readme. It's not as complicated as you think!
  * The critical point for reagents is gamified into range - this isn't exactly true to reality (since it's past a point, rather than a range) but this should make it more dynamic and less expensive
- * consider moving this to a lookup role and having volume percent as a component instead to reduce overhead
+ * This is a lookup/reference var and shouldn't be edited
 */
 /datum/reagent_phase
 	///The name or DEFINE of the phase for use with GUI/general case uses (I.e. SOLID, POWDER, LIQUID, GAS)
 	var/phase
-	///The percentage of said phase (from 0 to 1)
-	var/volume_percent
 	///The m (gradient/slope) aka equation of a line (y = mx+c): pressure = m * temperature + c See the readme and use the calculator
 	var/gradient
 	///same as m, except it the c (constant) part of y = mx+c See the readme and use the calculator
@@ -30,26 +29,16 @@
 	var/density
 	///The priority of the phase (for multistacking lines), higher is better
 	var/prioty
-	///The reagent we're a phase of
-	var/datum/reagent/reagent
 	///The speed modifier of this phase
 	var/reaction_speed_modifier = 1
 	///The purity modifier of this phase
 	var/purity_modifier = 1
 
-/datum/reagent_phase/New(_reagent)
-	. = ..()
-	reagent = _reagent
-
-/datum/reagent_phase/Destroy(force, ...)
-	reagent = null //Do not qdel - we're just removing this phase as a possibility.
-	..()
-
-///called for each update
+///called for each update that this phase has a volume presence
 /datum/reagent_phase/proc/tick(delta_time)
 
 ///Calculates how much of this current phase we should be aiming to convert into
-/datum/reagent_phase/proc/determine_phase_percent(temperature, pressure)
+/datum/reagent_phase/proc/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	var/required_pressure = gradient * temperature + constant
 	if(pressure < required_pressure - range)
 		return 0
@@ -59,7 +48,7 @@
 /datum/reagent_phase/proc/melt(amount)
 
 ///liquid to gas
-/datum/reagent_phase/proc/vaporise(amount)
+/datum/reagent_phase/proc/vaporise(datum/reagent/reagent, amount)
 	reagent.holder.adjust_specific_reagent_ph(reagent.type, )
 
 ///gas to solid
@@ -80,17 +69,17 @@
 	density = 0.5
 	priority = PHASE_PRIORITY_DEFAULT
 
-/datum/reagent_phase/gas/tick(delta_time)
-	dissipate(reagent.mass * delta_time)
+/datum/reagent_phase/gas/tick(datum/reagent/reagent, delta_time)
+	dissipate(reagent, reagent.mass * delta_time)
 
 ///If we're a gas and we're in an unsealed chamber
-/datum/reagent_phase/gas/proc/dissipate(amount)
+/datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount)
 	if(reagent.holder.flags & SEALED) // Don't dissipate if we're sealed
 		return
-	amount = max((reagent.volume * volume_percent) - amount, 0)//Don't remove more than we have
+	amount = max((reagent.volume * reagent.get_phase_percent(phase)) - amount, 0)//Don't remove more than we have
 	if(!amount)
 		return
-	volume_percent = (reagent.volume * volume_percent) - amount) / (reagent.volume - amount)
+	reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_percent(phase)) - amount) / (reagent.volume - amount)
 	reagent.holder.remove_reagent(reagent.type, amount)
 
 ///Default liquid
@@ -113,9 +102,9 @@
 	priority = PHASE_PRIORITY_STANDARD
 
 ///solid to powder (powder cannot become solid without turning into a liquid/gas first)
-/datum/reagent_phase/solid/proc/grind(amount)
-	reagent.adjust_phase(POWDER, volume_percent)
-	volume_percent = 0
+/datum/reagent_phase/solid/proc/grind(datum/reagent/reagent, amount)
+	reagent.set_phase_percent(POWDER, get_phase_percent(phase))
+	reagent.set_phase_percent(phase, 0)
 
 ///Ground powder
 /datum/reagent_phase/solid/powder
@@ -126,18 +115,57 @@
 
 ///Plasma
 /datum/reagent_phase/plasma
-	phase = PLASMA
+	phase = IONIZED
 	gradient
 	constant
 	reaction_speed_modifier = 2 //Good luck!
 	range = 0.1
 	purity_modifier = 1.1 //If you're mad enough to try using this to speed up reactions while it's actively reversing - wow!
 	density = 0.2
+	priority = PHASE_PRIORITY_HIGH
 	///The chemical reaction that this reagent is MADE from - i.e. we're going backwards
 	var/datum/chemical_reaction/reverse_reaction
 
-/datum/reagent_phase/plasma/tick(delta_time)
+/datum/reagent_phase/plasma/tick(datum/reagent/reagent, delta_time)
 	if(!reverse_reaction)
 		reverse_reaction = get_chemical_reaction(reagent.type)
 	reagent.holder.reverse_reaction(reverse_reaction, 0.85, delta_time)
-	holder.adjust_thermal_energy(heat_energy, 0, CHEMICAL_MAXIMUM_TEMPERATURE)
+	holder.adjust_thermal_energy(100, 0, CHEMICAL_MAXIMUM_TEMPERATURE)
+
+/////////////The mass calculated/autofill methods/////////////////
+
+/datum/reagent_phase/liquid/mass_effect
+	//These are autogenerated/work off mass and ph instead
+	gradient = null
+	constant = null
+
+/datum/reagent_phase/liquid/mass_effect/proc/generate_gradient(datum/reagent/reagent)
+	return (reagent.mass ** ((reagent.ph - 7) * 0.01)) * 0.0015
+
+/datum/reagent_phase/solid/mass_effect/proc/generate_constant(datum/reagent/reagent)
+	constant = -(gradient * (-80 - (reagent.mass * 0.2)))
+
+/datum/reagent_phase/solid/mass_effect
+	//These are autogenerated/work off mass and ph instead
+	gradient = null
+	constant = null
+
+/datum/reagent_phase/solid/mass_effect/proc/generate_gradient(datum/reagent/reagent)
+	return (reagent.mass ** ((reagent.ph - 7) * 0.01)) * 0.002
+
+/datum/reagent_phase/solid/mass_effect/proc/generate_constant(datum/reagent/reagent)
+	constant = -(gradient * (100 + (reagent.mass / 10)))
+
+/datum/reagent_phase/liquid/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+	//These will be overwritten everytime this is called - but that should be fine (so we have less objects about)
+	var/ratio = calculate_ratio(reagent)
+	gradient = generate_gradient(reagent)
+	constant = generate_constant(reagent)
+	..()
+
+//Powder doesn't need this - since it can only be created by grinding
+/datum/reagent_phase/solid/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+	var/ratio = calculate_ratio(reagent)
+	gradient = generate_gradient(reagent)
+	constant = generate_constant(reagent)
+	..()

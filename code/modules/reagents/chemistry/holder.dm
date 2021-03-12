@@ -85,18 +85,43 @@
 			GLOB.chemical_reactions_list[id] += D
 			break // Don't bother adding ourselves to other reagent ids, it is redundant
 
+/proc/build_reagent_phase_list()
+	var/paths = subtypesof(/datum/reagent_phase)
+	GLOB.reagent_phase_list = list()
+
+	for(var/path in paths)
+		var/datum/reagent_phase/phase_profile = new path()
+		GLOB.reagent_phase_list[path] = phase_profile
+
 ///Automatically generates phase profiles for reagents based off their mass
 /proc/build_phase_profiles()
 	for(var/reagent_path in GLOB.chemical_reagents_list)
 		var/datum/reagent/reagent = GLOB.chemical_reagents_list[reagent_path]
 		if(!reagent.mass)
-			stack_trace("[reagent.type] is missing a mass.")
+			var/datum/chemical_reaction/reverse_reaction = get_chemical_reaction(reagent.type)
+			var/sum_mass = 0
+			for(var/reactant in reverse_reaction.required_reagents)
+				var/datum/reagent/sub_reagent = GLOB.chemical_reagents_list[reactant]
+				if(!sub_reagent.mass)
+					stack_trace("[sub_reagent.type] is missing a mass and it cannot be used for [reagent.type]'s generated mass. Proceeding with a mass of 0. This reagent may have a mass that has yet to be generated however!")
+				sum_mass += sub_reagent.mass
 
-		if(!reagent.solid_c) //Autofill these vars
-			reagent.solid_c = -(reagent.solid_m * 100) //Normalise around 100
+			if(!sum_mass)
+				stack_trace("[reagent.type] is missing a mass and it cannot be generated. Proceeding with a mass of 0.")
+			reagent.mass = sum_mass
+		if(!reagent.phase_states)
+			stack_trace("[reagent.type] is missing a phase profile.")
 
 		if(!reagent.ignite_temperature) //Autofill these vars
-			reagent.burning_volume = mass *
+			reagent.burning_volume = 300 + (mass * 10)
+
+		///Now we convert the associated typepaths to live reference lookup objects
+		var/object_list = list()
+		for(item in reagent.phase_states)
+			var/datum/reagent_phase/phase_lookup = GLOB.chemical_phase_lookup[item]
+			object[phase_lookup] = active_phases[item] ///OBJECT = percentage
+		reagent.phase_states = object_list
+
 
 ///////////////////////////////Main reagents code/////////////////////////////////////////////
 
@@ -1148,6 +1173,7 @@
 	selected_reaction.on_reaction(null, src, multiplier)
 
 ///Reverses a reaction - i.e. creates required reagents from the input reaction while removing products
+///Does not remove all of it, instead it takes the input
 /datum/reagents/proc/reverse_react(datum/chemical_reaction/reaction, purity_mod, delta_time)
 	var/multiplier = INFINITY
 	for(var/reagent in reaction.results)

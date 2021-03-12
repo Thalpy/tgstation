@@ -110,6 +110,7 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 /datum/reagent/Destroy() // This should only be called by the holder, so it's already handled clearing its references
 	. = ..()
 	holder = null
+	phase_states = null //Do not destroy reference - it's a lookup table
 
 /// Applies this reagent to an [/atom]
 /datum/reagent/proc/expose_atom(atom/exposed_atom, reac_volume)
