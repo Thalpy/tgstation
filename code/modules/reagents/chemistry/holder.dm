@@ -85,6 +85,19 @@
 			GLOB.chemical_reactions_list[id] += D
 			break // Don't bother adding ourselves to other reagent ids, it is redundant
 
+///Automatically generates phase profiles for reagents based off their mass
+/proc/build_phase_profiles()
+	for(var/reagent_path in GLOB.chemical_reagents_list)
+		var/datum/reagent/reagent = GLOB.chemical_reagents_list[reagent_path]
+		if(!reagent.mass)
+			stack_trace("[reagent.type] is missing a mass.")
+
+		if(!reagent.solid_c) //Autofill these vars
+			reagent.solid_c = -(reagent.solid_m * 100) //Normalise around 100
+
+		if(!reagent.ignite_temperature) //Autofill these vars
+			reagent.burning_volume = mass *
+
 ///////////////////////////////Main reagents code/////////////////////////////////////////////
 
 /// Holder for a bunch of [/datum/reagent]
@@ -101,8 +114,6 @@
 	var/chem_temp = 150
 	///pH of the whole system
 	var/ph = CHEMICAL_NORMAL_PH
-	/// unused
-	var/last_tick = 1
 	/// various flags, see code\__DEFINES\reagents.dm
 	var/flags
 	///list of reactions currently on going, this is a lazylist for optimisation
@@ -1135,6 +1146,47 @@
 				extract.desc = "This extract has been used up."
 
 	selected_reaction.on_reaction(null, src, multiplier)
+
+///Reverses a reaction - i.e. creates required reagents from the input reaction while removing products
+/datum/reagents/proc/reverse_react(datum/chemical_reaction/reaction, purity_mod, delta_time)
+	var/multiplier = INFINITY
+	for(var/reagent in reaction.results)
+		multiplier = min(cached_required_reagents[reagent], get_reagent_amount(reagent))
+	if(multiplier == 0)
+		stack_trace("Attempted to reverse a reaction for [reaction], but the multiplier was 0!")
+		return FALSE
+
+	var/sum_purity = 0
+	for(var/_reagent in reaction.results)
+		var/datum/reagent/reagent = has_reagent(_reagent)
+		sum_purity += reagent.purity
+		remove_reagent(_reagent, (multiplier * cached_required_reagents[_reagent]), safety = 1)
+	sum_purity /= cached_required_reagents.len
+	sum_purity *= purity_mod
+
+	for(var/product in reaction.required_reagents)
+		var/yield = (cached_results[product]*multiplier)*sum_purity
+		SSblackbox.record_feedback("tally", "chemical_reaction_reversal", yield, product)
+		add_reagent(product, yield, null, chem_temp, sum_purity)
+
+		//Apply pH changes
+		var/pH_adjust
+		if(reaction.reaction_flags & REACTION_PH_VOL_CONSTANT)
+			pH_adjust = (step_add/target_vol)*(reaction.H_ion_release*h_ion_mod)
+		else
+			pH_adjust = step_add*(reaction.H_ion_release*h_ion_mod)
+		holder.adjust_specific_reagent_ph(product, -pH_adjust)
+
+	//Apply thermal output of reaction to beaker
+	if(reaction.reaction_flags & REACTION_HEAT_ARBITARY)
+		holder.chem_temp -= clamp((reaction.thermic_constant* total_step_added*thermic_mod), 0, CHEMICAL_MAXIMUM_TEMPERATURE) //old method - for every bit added, the whole temperature is adjusted
+	else //Standard mechanics
+		var/heat_energy = reaction.thermic_constant * total_step_added * thermic_mod * SPECIFIC_HEAT_DEFAULT
+		holder.adjust_thermal_energy-heat_energy, 0, CHEMICAL_MAXIMUM_TEMPERATURE) //heat is relative to the beaker conditions
+
+
+	reaction.on_reaction(null, src, multiplier)
+
 
 ///Possibly remove - see if multiple instant reactions is okay (Though, this "sorts" reactions by temp decending)
 ///Presently unused

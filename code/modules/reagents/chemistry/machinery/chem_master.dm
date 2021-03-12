@@ -416,6 +416,7 @@
 	if(action == "analyze")
 		var/datum/reagent/R = GLOB.name2reagent[params["id"]]
 		if(R)
+			//TODO: Fix this before putting up PR to be %
 			var/state = "Unknown"
 			if(initial(R.reagent_state) == 1)
 				state = "Solid"
