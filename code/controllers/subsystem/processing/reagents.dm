@@ -9,6 +9,7 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 	runlevels = RUNLEVEL_GAME | RUNLEVEL_POSTGAME
 	///What time was it when we last ticked
 	var/previous_world_time = 0
+	///The list of reagents datums that are currently having phase transitions
 
 /datum/controller/subsystem/processing/reagents/Initialize()
 	. = ..()

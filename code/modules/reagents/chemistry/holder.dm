@@ -1243,6 +1243,19 @@
 			total_volume += reagent.volume
 	recalculate_sum_ph()
 
+/datum/reagents/proc/update_phase(delta_time)
+	for(var/datum/reagent/reagent as anything in reagent_list)
+		reagent.adjust_phase_targets(delta_time)
+	update_pressure()
+
+/datum/reagents/proc/update_pressure()
+	var/sum_pressure = 0
+	for(var/datum/reagent/reagent as anything in reagent_list)
+		for(var/datum/reagent_phase/phase in reagent.phase_states)
+			sum_pressure += (reagent.volume * phase_states[phase]) / phase.density
+	pressure = sum_pressure
+	check_holder_pressure()
+
 /**
  * Applies the relevant expose_ proc for every reagent in this holder
  * * [/datum/reagent/proc/expose_mob]

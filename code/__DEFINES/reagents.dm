@@ -1,13 +1,13 @@
 ///powder is a solid, just ground
-#define POWDER 0
+#define POWDER (1<<0)
 ///Solid slows reaction speeds but works as expected
-#define SOLID 1
+#define SOLID (1<<1)
 ///Standard - old reaction method
-#define LIQUID 2
+#define LIQUID (1<<3)
 /// Will escape unsealed beaker or create pressure if sealed
-#define GAS 3
+#define GAS (1<<3)
 ///Will turn said reagent back into it's original parts
-#define IONISED 4
+#define IONISED (1<<4)
 
 #define INJECTABLE (1<<0) // Makes it possible to add reagents through droppers and syringes.
 #define DRAWABLE (1<<1) // Makes it possible to remove reagents through syringes.

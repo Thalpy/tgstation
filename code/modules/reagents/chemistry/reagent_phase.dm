@@ -1,12 +1,3 @@
-
-#define PHASE_PRIORITY_DEFAULT 0 //the default phase that any % will be filled in by
-#define PHASE_PRIORITY_STANDARD 1 //Stuff like solid and liquids - any phases above any others
-#define PHASE_PRIORITY_HIGH 2 //Stuff like plasma/ionised reagents
-//if you need more - then either define a higher order or just increase your number
-/*
-* A datapacket for setting reactions/reagents/conditions for reagents on creation OR for recipes
-*/
-
 /*
  * P = mT + c
  * Temperature is T (K)
@@ -27,8 +18,8 @@
 	var/range
 	///The density of this phase
 	var/density
-	///The priority of the phase (for multistacking lines), higher is better
-	var/prioty
+	///How fast this phase can transition (u/s) (into and from) If there's bugs it's likely this
+	var/transition_speed = 5
 	///The speed modifier of this phase
 	var/reaction_speed_modifier = 1
 	///The purity modifier of this phase
@@ -44,24 +35,11 @@
 		return 0
 	return  clamp(((pressure - required_pressure) / range), 0, 1)
 
-///Solid to liquid
-/datum/reagent_phase/proc/melt(amount)
+///When this current phase has a certain volume removed from it
+/datum/reagent_phase/proc/transition_from(datum/reagent/reagent, amount)
 
-///liquid to gas
-/datum/reagent_phase/proc/vaporise(datum/reagent/reagent, amount)
-	reagent.holder.adjust_specific_reagent_ph(reagent.type, )
-
-///gas to solid
-/datum/reagent_phase/proc/deposition(amount)
-
-///solid to gas
-/datum/reagent_phase/proc/sublimation(amount)
-
-///gas to liquid
-/datum/reagent_phase/proc/condensation(amount)
-
-///liquid to solid
-/datum/reagent_phase/proc/freeze(amount)
+///When this current phase has a certain volume added to it
+/datum/reagent_phase/proc/transition_to(datum/reagent/reagent, amount)
 
 //Default gas
 /datum/reagent_phase/gas
@@ -72,6 +50,10 @@
 /datum/reagent_phase/gas/tick(datum/reagent/reagent, delta_time)
 	dissipate(reagent, reagent.mass * delta_time)
 
+///liquid to gas
+/datum/reagent_phase/gas/transition_from(datum/reagent/reagent, amount)
+	reagent.holder.adjust_specific_reagent_ph(reagent.type, )
+
 ///If we're a gas and we're in an unsealed chamber
 /datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount)
 	if(reagent.holder.flags & SEALED) // Don't dissipate if we're sealed
@@ -79,8 +61,10 @@
 	amount = max((reagent.volume * reagent.get_phase_percent(phase)) - amount, 0)//Don't remove more than we have
 	if(!amount)
 		return
-	reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_percent(phase)) - amount) / (reagent.volume - amount)
-	reagent.holder.remove_reagent(reagent.type, amount)
+	//Move below to remove_reagent()
+	//reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_percent(phase)) - amount) / (reagent.volume - amount)
+	reagent.holder.remove_reagent(reagent.type, amount, phase = phase)
+	reagent.check_phase_ratio()
 
 ///Default liquid
 /datum/reagent_phase/liquid
@@ -103,8 +87,11 @@
 
 ///solid to powder (powder cannot become solid without turning into a liquid/gas first)
 /datum/reagent_phase/solid/proc/grind(datum/reagent/reagent, amount)
+	if(!reagent.has_phase(phase))
+		return FALSE
 	reagent.set_phase_percent(POWDER, get_phase_percent(phase))
 	reagent.set_phase_percent(phase, 0)
+	reagent.check_phase_ratio()
 
 ///Ground powder
 /datum/reagent_phase/solid/powder
@@ -113,7 +100,7 @@
 	density = 1.1
 	priority = PHASE_PRIORITY_DEFAULT
 
-///Plasma
+///Plasma - called IONIZED because plasma is everywhere in the codebase
 /datum/reagent_phase/plasma
 	phase = IONIZED
 	gradient

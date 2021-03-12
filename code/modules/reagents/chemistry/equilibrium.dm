@@ -130,6 +130,8 @@
 			if(reagent.volume >= catalyst_agent.min_volume)
 				catalyst_agent.consider_catalyst(src)
 
+		reagent.consider_phase_modifiers(src)
+
 	if(!(total_matching_catalysts == reaction.required_catalysts.len))
 		return FALSE
 
