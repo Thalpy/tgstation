@@ -22,6 +22,10 @@
 #define REAGENT_HOLDER_INSTANT_REACT (1<<8)  // Applied to a reagent holder, all of the reactions in the reagents datum will be instant. Meant to be used for things like smoke effects where reactions aren't meant to occur
 ///If the container is sealed - will trap in gas, but will increase in pressure
 #define SEALED (1<<9)
+///If this holder is being processed for phase
+#define SUBSYSTEM_PROCESS_PHASE (1<<10)
+///If this holder is being processed for reactions
+#define SUBSYSTEM_PROCESS_PHASE (1<<11)
 
 // Is an open container for all intents and purposes.
 #define OPENCONTAINER (REFILLABLE | DRAINABLE | TRANSPARENT)
@@ -121,6 +125,9 @@
 #define WITHDRAWAL_STAGE2_START_CYCLE 61
 #define WITHDRAWAL_STAGE2_END_CYCLE 120
 #define WITHDRAWAL_STAGE3_START_CYCLE 121
+
+///Phase state profiles for easy use
+#define PHASE_STATE_LIQUID_DETERMINISTIC list(/datum/reagent_phase/plasma = 0, /datum/reagent_phase/linear/solid/powder = 0, /datum/reagent_phase/linear/solid/mass_effect = 0, /datum/reagent_phase/linear/liquid/mass_effect = 1, /datum/reagent_phase/gas = 0)
 
 ///reagent tags - used to look up reagents for specific effects. Feel free to add to but comment it
 /// This reagent does brute effects (BOTH damaging and healing)

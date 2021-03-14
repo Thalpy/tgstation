@@ -149,6 +149,8 @@
 	var/list/failed_but_capable_reactions
 	///Hard check to see if the reagents is presently reacting
 	var/is_reacting = FALSE
+	///If we're sealed - what gas mix do we have in with us, if we're null we're unsealed
+	var/datum/gas_mixture/air_mix = null
 	///UI lookup stuff
 	///Keeps the id of the reaction displayed in the ui
 	var/ui_reaction_id = null
@@ -1242,19 +1244,51 @@
 		else
 			total_volume += reagent.volume
 	recalculate_sum_ph()
+	check_reagent_phase()
 
-/datum/reagents/proc/update_phase(delta_time)
+/datum/reagents/proc/check_reagent_phase()
+	var/needs_processing = FALSE
 	for(var/datum/reagent/reagent as anything in reagent_list)
-		reagent.adjust_phase_targets(delta_time)
-	update_pressure()
+		needs_processing = reagent.check_phase_flux()
+	if(needs_processing)
+		SSreagents.start_processing(src, SUBSYSTEM_PROCESS_PHASE)
 
+/datum/reagents/proc/process_phase(delta_time)
+	var/needs_update = FALSE
+	for(var/datum/reagent/reagent as anything in reagent_list)
+		needs_update = reagent.adjust_phase_targets(delta_time)
+	update_pressure()
+	if(!needs_update)
+		return PROCESS_KILL
+
+///Updates the pressure var of the holder - will consider the local area's pressure if it's an unsealed holder
 /datum/reagents/proc/update_pressure()
 	var/sum_pressure = 0
+	var/sum_volume = 0
+	//Get the pressure of the reagents in the holder
 	for(var/datum/reagent/reagent as anything in reagent_list)
 		for(var/datum/reagent_phase/phase in reagent.phase_states)
-			sum_pressure += (reagent.volume * phase_states[phase]) / phase.density
+			//pV = nRT except I fudge numbers and ideology is gone
+			sum_volume += ((reagent.volume * phase_states[phase]) / phase.density) / reagent.volume
+	//1atm = 101 kPa, but lets just make it simple and make it 100
+	sum_pressure = sum_volume * (chem_temp/3)
+	//If we're in a holder that isn't sealed
+	if(!flags & SEALED)
+		var/datum/gas_mixture/local_gas = my_atom.return_air()
+		if(local_gas)//if we're not in nullspace
+			var/local_pressure = local_gas.return_pressure()
+			var/delta_pressure = sum_pressure - pressure //Local pocket of pressure created from this step
+			sum_pressure = local_pressure + delta_pressure
+			//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
+	//Update our pressure
 	pressure = sum_pressure
+	//If we're over the pressure value of the holder - i.e. are we gonna blow?
 	check_holder_pressure()
+
+/datum/reagents/proc/seal()
+	var/datum/gas_mixture/local_gas = my_atom.return_air()
+	air_mix = local_gas.copy()
+
 
 /**
  * Applies the relevant expose_ proc for every reagent in this holder

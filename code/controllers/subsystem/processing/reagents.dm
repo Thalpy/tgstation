@@ -1,5 +1,8 @@
 //Used for active reactions in reagents/equilibrium datums
 
+#define REAGENTS_PROCESS_TYPE_REACTION 1
+#define REAGENTS_PROCESS_TYPE_PHASE 2
+
 PROCESSING_SUBSYSTEM_DEF(reagents)
 	name = "Reagents"
 	init_order = INIT_ORDER_REAGENTS
@@ -9,7 +12,8 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 	runlevels = RUNLEVEL_GAME | RUNLEVEL_POSTGAME
 	///What time was it when we last ticked
 	var/previous_world_time = 0
-	///The list of reagents datums that are currently having phase transitions
+	///The list of datums we're phase processing
+	var/list/datum/reagents/phase_processing
 
 /datum/controller/subsystem/processing/reagents/Initialize()
 	. = ..()
@@ -20,6 +24,8 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 	//Build GLOB lists - see holder.dm
 	build_chemical_reagent_list()
 	build_chemical_reactions_lists()
+	build_reagent_phase_list()
+	build_phase_profiles()
 	return
 
 /datum/controller/subsystem/processing/reagents/fire(resumed = FALSE)
@@ -43,3 +49,37 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 			STOP_PROCESSING(src, thing)
 		if (MC_TICK_CHECK)
 			return
+
+	//This might need reviewing - let me know if this is bad
+	for(var/datum/reagents/thing as anything in phase_processing)
+		if(QDELETED(thing))
+			stack_trace("Found qdeleted thing in [type], in the current_run list.")
+			phase_processing -= thing
+		else if(thing.process_phase(delta_realtime) == PROCESS_KILL) //we are realtime
+			stop_processing(thing, SUBSYSTEM_PROCESS_PHASE)
+		if (MC_TICK_CHECK)
+			return
+
+/datum/controller/subsystem/processing/reagents/proc/start_processing(datum/reagents/reagents, type)
+	if(!(reagents.datum_flags & DF_ISPROCESSING))
+		reagents.datum_flags |= DF_ISPROCESSING
+	switch(type)
+		if(REAGENTS_PROCESS_TYPE_REACTION)
+			if(!(reagents.flags |= SUBSYSTEM_PROCESS_REACTION))
+				reagents.flags |= SUBSYSTEM_PROCESS_REACTION
+				processing += reagents
+		if(REAGENTS_PROCESS_TYPE_PHASE)
+			if(!(reagents.flags |= SUBSYSTEM_PROCESS_PHASE))
+				reagents.flags |= SUBSYSTEM_PROCESS_PHASE
+				phase_processing += reagents
+
+/datum/controller/subsystem/processing/reagents/proc/stop_processing(datum/reagents/reagents, type)
+	switch(type)
+		if(REAGENTS_PROCESS_TYPE_REACTION)
+			reagents.flags &= ~SUBSYSTEM_PROCESS_REACTION
+			processing -= reagents
+		if(REAGENTS_PROCESS_TYPE_PHASE)
+			reagents.flags &= ~SUBSYSTEM_PROCESS_PHASE
+			phase_processing -= reagents
+	if(!(reagents.flags & SUBSYSTEM_PROCESS_REACTION) && !(reagents.flags & SUBSYSTEM_PROCESS_PHASE))
+		reagents.datum_flags &= ~DF_ISPROCESSING

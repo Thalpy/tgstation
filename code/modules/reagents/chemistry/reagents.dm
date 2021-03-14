@@ -55,7 +55,7 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	///Phase vars
 	/// SOLID, POWDER, LIQUID, GAS - these are converted to object references on startup, but in general I wouldn't expect to interact with these directly.
 	///IMPORTANT - the ORDER that these are in determine the priorty of the phases!!
-	var/list/phase_states = list(/datum/reagent_phase/plasma = 0, /datum/reagent_phase/solid/powder = 0, /datum/reagent_phase/solid/mass_effect = 0, /datum/reagent_phase/liquid/mass_effect = 1, /datum/reagent_phase/gas = 0)
+	var/list/phase_states = PHASE_STATE_LIQUID_DETERMINISTIC
 	/// color it looks in containers etc
 	var/color = "#000000" // rgb: 0, 0, 0
 	///how fast the reagent is metabolized by the mob
@@ -91,6 +91,9 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	var/failed_chem = /datum/reagent/consumable/failed_reaction
 	///Thermodynamic vars
 	///Temperature at which the reagent catches fire
+
+	//TODO: x = (y-c)/m for minimum reagent pressure ignite temperature
+
 	var/ignite_temperature = null
 	///What GASSES are produced from burning - can be a gas OR reagent with asssociate volume
 	var/burning_products = list(/datum/gas/carbon_dioxide, 5)
@@ -280,7 +283,8 @@ Primarily used in reagents/reaction_agents
 			ratio = 1 - sum_ratio
 		target_list[phase] = ratio * reagent.volume
 		sum_ratio += ratio
-
+	//If we're not at our target yet - request an update on the next tick
+	var/needs_update = FALSE
 	for(var/datum/reagent_phase/phase in target_list) //target list is the target volume assoc list
 		if(target_list[phase] == phase_states[phase])//No change
 			continue
@@ -293,7 +297,11 @@ Primarily used in reagents/reaction_agents
 			phase.transition_from(src, amount)
 			phase_states[phase] -= amount
 
+		if(target_list[phase] != phase_states[phase])//We updated - but we're not at our target yet
+			needs_update = TRUE
+	//Ensure we're 100%
 	check_phase_ratio()
+	return needs_update
 
 
 
