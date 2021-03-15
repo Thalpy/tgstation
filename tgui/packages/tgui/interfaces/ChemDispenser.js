@@ -195,22 +195,40 @@ export const ChemDispenser = (props, context) => {
                   || beakerContents.length === 0 && 'Nothing'}
               </Box>
               {beakerContents.map(chemical => (
-                <Box
-                  key={chemical.name}
-                  color="label">
-                  <AnimatedNumber
-                    initial={0}
-                    value={chemical.volume} />
-                  {' '}
-                  units of {chemical.name}
-                </Box>
+                <>
+                  <Box
+                    key={chemical.name}
+                    color="label">
+                    <AnimatedNumber
+                      initial={0}
+                      value={chemical.volume} />
+                    {' '}
+                    units of {chemical.name}
+                  </Box>
+                  {chemical.pressureProfile.map(phase => (
+                    <Box
+                      key={phase.key}>
+                      {phase.key}:
+                      <AnimatedNumber
+                        initial={0}
+                        value={phase.value*100} />
+                    </Box>
+                  ))}
+                </>
               ))}
               {((beakerContents.length > 0 && !!data.showpH) && (
-                <Box>
-                  pH:
-                  <AnimatedNumber
-                    value={data.beakerCurrentpH} />
-                </Box>)
+                <>
+                  <Box>
+                    pH:
+                    <AnimatedNumber
+                      value={data.beakerCurrentpH} />
+                  </Box>
+                  <Box>
+                    Pressure:
+                      <AnimatedNumber
+                        value={data.pressure+"kPa"} />
+                  </Box>
+                </>)
               )}
             </LabeledList.Item>
           </LabeledList>

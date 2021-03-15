@@ -56,6 +56,8 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	/// SOLID, POWDER, LIQUID, GAS - these are converted to object references on startup, but in general I wouldn't expect to interact with these directly.
 	///IMPORTANT - the ORDER that these are in determine the priorty of the phases!!
 	var/list/phase_states = PHASE_STATE_LIQUID_DETERMINISTIC
+	///TODO: delete this var since above is replacing it
+	var/reagent_state = UNDEFINED
 	/// color it looks in containers etc
 	var/color = "#000000" // rgb: 0, 0, 0
 	///how fast the reagent is metabolized by the mob
@@ -322,7 +324,7 @@ Primarily used in reagents/reaction_agents
 
 ///Checks to make sure that the ratio values for all the phases are
 /datum/reagent/proc/check_phase_ratio()
-	sum_ratio = 0
+	var/sum_ratio = 0
 	for(var/datum/reagent_phase/phase_state in phase_states)
 		sum_ratio += phase_states[phase_state]
 	if(sum_ratio != 1)

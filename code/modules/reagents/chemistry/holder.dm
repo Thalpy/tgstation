@@ -109,11 +109,23 @@
 			if(!sum_mass)
 				stack_trace("[reagent.type] is missing a mass and it cannot be generated. Proceeding with a mass of 0.")
 			reagent.mass = sum_mass
-		if(!reagent.phase_states)
-			stack_trace("[reagent.type] is missing a phase profile.")
+		if(reagent.reagent_state == UNDEFINED)
+			switch(mass)
+				if(-INFINITY to 0)
+					stack_trace("Mass of reagent [reagent] is negative/nonsensical! [reagent.mass]")
+				if(0 to 40)
+					reagent_state = GAS
+				if(40 to 120)
+					reagent_state = LIQUID
+				if(120 to INFINITY)
+					reagent_state = SOLID
+
+		//if(!reagent.phase_states)
+			//Enable this later
+			//stack_trace("[reagent.type] is missing a phase profile.")
 
 		if(!reagent.ignite_temperature) //Autofill these vars
-			reagent.burning_volume = 300 + (mass * 10)
+			reagent.ignite_temperature = 300 + (mass * 10)
 
 		///Now we convert the associated typepaths to live reference lookup objects
 		var/object_list = list()
@@ -150,7 +162,7 @@
 	///Hard check to see if the reagents is presently reacting
 	var/is_reacting = FALSE
 	///If we're sealed - what gas mix do we have in with us, if we're null we're unsealed
-	var/datum/gas_mixture/air_mix = null
+	var/datum/gas_mixture/sealed_air_mix = null
 	///UI lookup stuff
 	///Keeps the id of the reaction displayed in the ui
 	var/ui_reaction_id = null
@@ -1210,7 +1222,7 @@
 		holder.chem_temp -= clamp((reaction.thermic_constant* total_step_added*thermic_mod), 0, CHEMICAL_MAXIMUM_TEMPERATURE) //old method - for every bit added, the whole temperature is adjusted
 	else //Standard mechanics
 		var/heat_energy = reaction.thermic_constant * total_step_added * thermic_mod * SPECIFIC_HEAT_DEFAULT
-		holder.adjust_thermal_energy-heat_energy, 0, CHEMICAL_MAXIMUM_TEMPERATURE) //heat is relative to the beaker conditions
+		holder.adjust_thermal_energy(-heat_energy, 0, CHEMICAL_MAXIMUM_TEMPERATURE) //heat is relative to the beaker conditions
 
 
 	reaction.on_reaction(null, src, multiplier)
@@ -1265,21 +1277,31 @@
 /datum/reagents/proc/update_pressure()
 	var/sum_pressure = 0
 	var/sum_volume = 0
+	var/active_states
+	var/sum_moles
 	//Get the pressure of the reagents in the holder
 	for(var/datum/reagent/reagent as anything in reagent_list)
+		active_states = 0
 		for(var/datum/reagent_phase/phase in reagent.phase_states)
-			//pV = nRT except I fudge numbers and ideology is gone
-			sum_volume += ((reagent.volume * phase_states[phase]) / phase.density) / reagent.volume
-	//1atm = 101 kPa, but lets just make it simple and make it 100
-	sum_pressure = sum_volume * (chem_temp/3)
+			if(!phase_states[phase]) //phase is empty
+				continue
+			active_states++
+			//sum_volume += ((reagent.volume * phase_states[phase]) / phase.density) / reagent.volume
+			//Consider moving the log function to outside of the loop
+			sum_moles = log(((reagent.volume * phase_states[phase] * reagent.mass) / phase.density), 10)
+		//pV = nRT except I fudge numbers and ideology is gone
+		//1atm = 101 kPa, but lets just make it simple and make it 100
+		sum_pressure += (sum_moles * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume * active_states)
+	sum_pressure /= reagent_list.len
 	//If we're in a holder that isn't sealed
-	if(!flags & SEALED)
+	if(flags & SEALED) //TODO
+		sum_pressure = ((sum_pressure * total_volume) + (sealed_air_mix.get_pressure() * (maximum_volume - total_volume))) / total_volume
+	else
 		var/datum/gas_mixture/local_gas = my_atom.return_air()
 		if(local_gas)//if we're not in nullspace
 			var/local_pressure = local_gas.return_pressure()
-			var/delta_pressure = sum_pressure - pressure //Local pocket of pressure created from this step
-			sum_pressure = local_pressure + delta_pressure
-			//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
+			sum_pressure = (sum_pressure + local_pressure) / 2
+	//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
 	//Update our pressure
 	pressure = sum_pressure
 	//If we're over the pressure value of the holder - i.e. are we gonna blow?

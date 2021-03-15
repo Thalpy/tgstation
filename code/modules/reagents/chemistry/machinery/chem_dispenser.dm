@@ -197,13 +197,18 @@
 	data["maxEnergy"] = cell.maxcharge * powerefficiency
 	data["isBeakerLoaded"] = beaker ? 1 : 0
 	data["showpH"] = show_ph
+	data["pressure"] = beaker?.reagents.pressure
 
 	var/beakerContents[0]
 	var/beakerCurrentVolume = 0
+	var/reagent_pressure_profile = list("Solid" = 0, "Liquid" = 0, "Gas" = 0)
 	if(beaker && beaker.reagents && beaker.reagents.reagent_list.len)
 		for(var/datum/reagent/R in beaker.reagents.reagent_list)
-			beakerContents.Add(list(list("name" = R.name, "volume" = round(R.volume, 0.01), "pH" = R.ph, "purity" = R.purity))) // list in a list because Byond merges the first list...
+			for(var/datum/reagent_phase/phase in reagent.phase_states)
+				reagent_pressure_profile["[phase.phase]"] = R.phase_states[phase]
+			beakerContents.Add(list(list("name" = R.name, "volume" = round(R.volume, 0.01), "pH" = R.ph, "purity" = R.purity), "pressureProfile" = reagent_pressure_profile)) // list in a list because Byond merges the first list...
 			beakerCurrentVolume += R.volume
+
 	data["beakerContents"] = beakerContents
 
 	if (beaker)

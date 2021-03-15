@@ -3,7 +3,7 @@
 	build_chemical_reactions_lists()
 	build_chemical_reagent_list()
 	build_reagent_phase_list()
-	calculate_phase_profiles()
+	build_phase_profiles()
 	for(var/reagent_path in GLOB.chemical_reagents_list)
 		var/datum/reagent/reagent = GLOB.chemical_reagents_list[reagent_path]
 		if(!reagent.mass)

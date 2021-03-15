@@ -104,7 +104,7 @@
 
 ///Ground powder
 /datum/reagent_phase/linear/solid/powder
-	phase = POWDER
+	phase = SOLID
 	reaction_speed_modifier = 0.9
 	density = 1.1
 	priority = PHASE_PRIORITY_DEFAULT
@@ -115,9 +115,9 @@
 	. = ..()
 	return min(., reagent.phase_states[src])//So we can only remain the same, or go lower
 
-///Plasma - called IONIZED because plasma is everywhere in the codebase
+///Plasma - called IONISED because plasma is everywhere in the codebase
 /datum/reagent_phase/plasma
-	phase = IONIZED
+	phase = IONISED
 	reaction_speed_modifier = 2 //Good luck!
 	purity_modifier = 1.1 //If you're mad enough to try using this to speed up reactions while it's actively reversing - wow!
 	density = 0.2
@@ -167,3 +167,55 @@
 	gradient = generate_gradient(reagent)
 	constant = generate_constant(reagent)
 	..()
+
+///Low weight gas mixture used in pressure calculations
+/datum/pseudo_gas
+	///Associative gas list
+	var/list/reagent_gasses = list()
+
+/datum/pseudo_gas/proc/convert_to_reagent(type)
+	switch(type)
+		if(/datum/gas/hydrogen)
+			return /datum/reagent/hydrogen
+
+		if(/datum/gas/water_vapor)
+			return /datum/reagent/water
+
+		if(/datum/gas/oxygen)
+			return /datum/reagent/oxygen
+
+		if(/datum/gas/carbon_dioxide)
+			return /datum/reagent/carbondioxide
+
+		if(/datum/gas/nitrogen)
+			return /datum/reagent/nitrogen
+
+		if(/datum/gas/nitrous_oxide)
+			return /datum/reagent/nitrous_oxide
+
+		if(/datum/gas/helium)
+			return /datum/reagent/helium
+
+		if(/datum/gas/plasma)
+			return /datum/reagent/toxin/plasma
+
+		if(/datum/gas/bz)
+			return /datum/reagent/toxin/mindbreaker
+
+		if(/datum/gas/healium)
+			return /datum/reagent/healium
+
+		if(/datum/gas/stimulum)
+			return /datum/reagent/stimulum
+
+		if(/datum/gas/nitryl)
+			return /datum/reagent/nitryl
+
+		if(/datum/gas/freon)
+			return /datum/reagent/freon
+
+		if(/datum/gas/halon)
+			return /datum/reagent/halon
+
+		if(/datum/gas/hypernoblium)
+			return /datum/reagent/hypernoblium

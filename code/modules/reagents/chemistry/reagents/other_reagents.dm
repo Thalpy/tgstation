@@ -321,6 +321,7 @@
 	shot_glass_icon_state = "shotglassclear"
 	ph = 6.2
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 34
 
 /*
  * Water reaction to turf
@@ -762,6 +763,7 @@
 	taste_mult = 0 // oderless and tasteless
 	ph = 9.2//It's acutally a huge range and very dependant on the chemistry but ph is basically a made up var in it's implementation anyways
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 16
 
 
 /datum/reagent/oxygen/expose_turf(turf/open/exposed_turf, reac_volume)
@@ -779,6 +781,7 @@
 	taste_description = "metal"
 	ph = 5.5
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 64
 
 /datum/reagent/copper/expose_obj(obj/exposed_obj, reac_volume)
 	. = ..()
@@ -797,6 +800,7 @@
 	color = "#808080" // rgb: 128, 128, 128
 	taste_mult = 0
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 14
 
 /datum/reagent/nitrogen/expose_turf(turf/open/exposed_turf, reac_volume)
 	if(istype(exposed_turf))
@@ -804,7 +808,7 @@
 		exposed_turf.atmos_spawn_air("n2=[reac_volume/20];TEMP=[temp]")
 	return ..()
 
-/datum/reagent/hydrogen
+/datum/reagent/hydrogen //Consider editing to diatomic hydrogen
 	name = "Hydrogen"
 	description = "A colorless, odorless, nonmetallic, tasteless, highly combustible diatomic gas."
 	reagent_state = GAS
@@ -812,6 +816,7 @@
 	taste_mult = 0
 	ph = 0.1//Now I'm stuck in a trap of my own design. Maybe I should make -ve phes? (not 0 so I don't get div/0 errors)
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 1
 
 /datum/reagent/potassium
 	name = "Potassium"
@@ -820,6 +825,7 @@
 	color = "#A0A0A0" // rgb: 160, 160, 160
 	taste_description = "sweetness"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 39
 
 /datum/reagent/mercury
 	name = "Mercury"
@@ -827,6 +833,7 @@
 	color = "#484848" // rgb: 72, 72, 72A
 	taste_mult = 0 // apparently tasteless.
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 200
 
 /datum/reagent/mercury/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	if(!HAS_TRAIT(src, TRAIT_IMMOBILIZED) && !isspaceturf(M.loc))
@@ -836,6 +843,13 @@
 	M.adjustOrganLoss(ORGAN_SLOT_BRAIN, 0.5*delta_time)
 	..()
 
+/datum/reagent/helium
+	name = "Helium"
+	description = "A non-toxic, inert, monatomic gas. A very noble gas indeed!"
+	color = "#93fff6" // rgb: 72, 72, 72A
+	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 4
+
 /datum/reagent/sulfur
 	name = "Sulfur"
 	description = "A sickly yellow solid mostly known for its nasty smell. It's actually much more helpful than it looks in biochemisty."
@@ -844,6 +858,7 @@
 	taste_description = "rotten eggs"
 	ph = 4.5
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 32
 
 /datum/reagent/carbon
 	name = "Carbon"
@@ -853,6 +868,7 @@
 	taste_description = "sour chalk"
 	ph = 5
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 12
 
 /datum/reagent/carbon/expose_turf(turf/exposed_turf, reac_volume)
 	. = ..()
@@ -871,6 +887,7 @@
 	taste_description = "chlorine"
 	ph = 7.4
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 35
 
 
 // You're an idiot for thinking that one of the most corrosive and deadly gasses would be beneficial
@@ -897,6 +914,7 @@
 	taste_description = "acid"
 	ph = 2
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 19
 
 // You're an idiot for thinking that one of the most corrosive and deadly gasses would be beneficial
 /datum/reagent/fluorine/on_hydroponics_apply(obj/item/seeds/myseed, datum/reagents/chems, obj/machinery/hydroponics/mytray, mob/user)
@@ -920,6 +938,7 @@
 	taste_description = "salty metal"
 	ph = 11.6
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 23
 
 /datum/reagent/phosphorus
 	name = "Phosphorus"
@@ -929,6 +948,7 @@
 	taste_description = "vinegar"
 	ph = 6.5
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 31
 
 // Phosphoric salts are beneficial though. And even if the plant suffers, in the long run the tray gets some nutrients. The benefit isn't worth that much.
 /datum/reagent/phosphorus/on_hydroponics_apply(obj/item/seeds/myseed, datum/reagents/chems, obj/machinery/hydroponics/mytray, mob/user)
@@ -946,6 +966,7 @@
 	taste_description = "metal"
 	ph = 11.3
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 7
 
 /datum/reagent/lithium/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	if(!HAS_TRAIT(M, TRAIT_IMMOBILIZED) && !isspaceturf(M.loc))
@@ -988,6 +1009,7 @@
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	color = "#606060" //pure iron? let's make it violet of course
 	ph = 6
+	mass = 56
 
 /datum/reagent/iron/on_mob_life(mob/living/carbon/C, delta_time, times_fired)
 	if(C.blood_volume < BLOOD_VOLUME_NORMAL)
@@ -1002,6 +1024,7 @@
 	taste_description = "expensive metal"
 	material = /datum/material/gold
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 197
 
 /datum/reagent/silver
 	name = "Silver"
@@ -1011,6 +1034,7 @@
 	taste_description = "expensive yet reasonable metal"
 	material = /datum/material/silver
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 108
 
 /datum/reagent/uranium
 	name ="Uranium"
@@ -1022,6 +1046,7 @@
 	ph = 4
 	material = /datum/material/uranium
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 238
 
 /datum/reagent/uranium/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	M.apply_effect(irradiation_level*delta_time/M.metabolism_efficiency, EFFECT_IRRADIATE,0)
@@ -1056,6 +1081,7 @@
 	material = null
 	ph = 10
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 226
 
 /datum/reagent/uranium/radium/on_hydroponics_apply(obj/item/seeds/myseed, datum/reagents/chems, obj/machinery/hydroponics/mytray, mob/user)
 	. = ..()
@@ -1072,6 +1098,7 @@
 	material = /datum/material/bluespace
 	ph = 12
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 148
 
 /datum/reagent/bluespace/expose_mob(mob/living/exposed_mob, methods=TOUCH, reac_volume)
 	. = ..()
@@ -1096,6 +1123,7 @@
 	color = "#A8A8A8" // rgb: 168, 168, 168
 	taste_description = "metal"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 27
 
 /datum/reagent/silicon
 	name = "Silicon"
@@ -1106,6 +1134,7 @@
 	material = /datum/material/glass
 	ph = 10
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 28
 
 /datum/reagent/fuel
 	name = "Welding fuel"
@@ -1121,6 +1150,7 @@
 	burning_volume = 0.2
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	addiction_types = list(/datum/addiction/alcohol = 4)
+	mass = 251
 
 /datum/reagent/fuel/expose_mob(mob/living/exposed_mob, methods=TOUCH, reac_volume)//Splashing people with welding fuel to make them easy to ignite!
 	. = ..()
@@ -1305,6 +1335,7 @@
 	taste_description = "mordant"
 	ph = 11.6
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 17
 
 /datum/reagent/ammonia/on_hydroponics_apply(obj/item/seeds/myseed, datum/reagents/chems, obj/machinery/hydroponics/mytray, mob/user)
 	. = ..()
@@ -1341,6 +1372,8 @@
 	taste_description = "something unknowable"
 	ph = 6
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 44
+
 
 /datum/reagent/carbondioxide/expose_turf(turf/open/exposed_turf, reac_volume)
 	if(istype(exposed_turf))
@@ -1389,6 +1422,7 @@
 	ph = 1.8
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	addiction_types = list(/datum/addiction/stimulants = 14)
+	mass = 27
 
 /datum/reagent/stimulum/on_mob_metabolize(mob/living/L)
 	..()
@@ -1414,6 +1448,7 @@
 	taste_description = "burning"
 	ph = 2
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 21
 
 /datum/reagent/nitryl/on_mob_metabolize(mob/living/L)
 	..()
@@ -1431,6 +1466,7 @@
 	color = "90560B"
 	taste_description = "burning"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 11
 
 /datum/reagent/freon/on_mob_metabolize(mob/living/L)
 	. = ..()
@@ -1448,6 +1484,7 @@
 	color = "90560B"
 	taste_description = "searingly cold"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 19
 
 /datum/reagent/hypernoblium/on_mob_metabolize(mob/living/L)
 	. = ..()
@@ -1467,6 +1504,7 @@
 	color = "90560B"
 	taste_description = "rubbery"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 11
 
 /datum/reagent/healium/on_mob_metabolize(mob/living/L)
 	. = ..()
@@ -1490,6 +1528,7 @@
 	color = "90560B"
 	taste_description = "minty"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 26
 
 /datum/reagent/halon/on_mob_metabolize(mob/living/L)
 	. = ..()

@@ -1,13 +1,15 @@
-///powder is a solid, just ground
-#define POWDER (1<<0)
+///If we're not defined then our mass at roundstart defines what phase we are
+#define UNDEFINED "Undefined"
 ///Solid slows reaction speeds but works as expected
-#define SOLID (1<<1)
+#define SOLID "Solid"
 ///Standard - old reaction method
-#define LIQUID (1<<3)
+#define LIQUID "Liquid"
 /// Will escape unsealed beaker or create pressure if sealed
-#define GAS (1<<3)
+#define GAS "Gas"
 ///Will turn said reagent back into it's original parts
-#define IONISED (1<<4)
+#define IONISED "Ionised"
+///Special type for anything that doesn't fit the above
+#define SPECIAL "Special"
 
 #define INJECTABLE (1<<0) // Makes it possible to add reagents through droppers and syringes.
 #define DRAWABLE (1<<1) // Makes it possible to remove reagents through syringes.
@@ -23,7 +25,7 @@
 ///If the container is sealed - will trap in gas, but will increase in pressure
 #define SEALED (1<<9)
 ///If this holder is being processed for phase
-#define SUBSYSTEM_PROCESS_PHASE (1<<10)
+#define SUBSYSTEM_PROCESS_REACTION (1<<10)
 ///If this holder is being processed for reactions
 #define SUBSYSTEM_PROCESS_PHASE (1<<11)
 
