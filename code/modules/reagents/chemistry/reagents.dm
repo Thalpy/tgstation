@@ -355,7 +355,7 @@ Primarily used in reagents/reaction_agents
 ///Checks to make sure that the ratio values for all the phases are
 /datum/reagent/proc/check_phase_ratio(debug = FALSE)
 	var/sum_ratio = 0
-	for(var/datum/reagent_phase/phase_state in phase_states)
+	for(var/phase_state in phase_states)
 		sum_ratio += phase_states[phase_state]
 	if(sum_ratio != 1) //This can happen from set_phase_percent()
 		if(debug)
@@ -379,7 +379,7 @@ Primarily used in reagents/reaction_agents
 /datum/reagent/proc/consider_phase_modifiers(var/datum/equilibrium/reaction)
 	var/sum_speed = 0 //Sum of speed modifiers
 	var/sum_purity = 0 //Sum of purity modifiers
-	for(var/datum/reagent_phase/phase in phase_states)
+	for(var/datum/reagent_phase/phase as anything in phase_states)
 		sum_speed += phase.reaction_speed_modifier * phase_states[phase]
 		sum_purity += phase.purity_modifier * phase_states[phase]
 	if(!sum_speed || !sum_purity)

@@ -131,7 +131,10 @@
 #define WITHDRAWAL_STAGE3_START_CYCLE 121
 
 ///Phase state profiles for easy use
+///Reagent is a liquid at room temperature
 #define PHASE_STATE_LIQUID_DETERMINISTIC list(/datum/reagent_phase/plasma = 0, /datum/reagent_phase/linear/solid/powder = 0, /datum/reagent_phase/linear/solid/mass_effect = 0, /datum/reagent_phase/linear/liquid/mass_effect = 1, /datum/reagent_phase/gas = 0)
+///Reagent is a gas at room temperature
+#define PHASE_STATE_GAS_DETERMINISTIC list(/datum/reagent_phase/plasma = 0, /datum/reagent_phase/linear/solid/powder = 0, /datum/reagent_phase/linear/solid/mass_effect/gas = 0, /datum/reagent_phase/linear/liquid/mass_effect/gas = 0, /datum/reagent_phase/gas = 1)
 
 ///reagent tags - used to look up reagents for specific effects. Feel free to add to but comment it
 /// This reagent does brute effects (BOTH damaging and healing)

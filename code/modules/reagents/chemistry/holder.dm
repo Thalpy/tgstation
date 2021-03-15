@@ -122,21 +122,25 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	for(var/reagent_path in GLOB.chemical_reagents_list)
 		var/datum/reagent/reagent = GLOB.chemical_reagents_list[reagent_path]
 		if(!reagent.mass)
-			var/datum/chemical_reaction/reverse_reaction = get_chemical_reaction(reagent.type)
+			var/list/reactions = get_recipe_from_reagent_product(reagent.type)
+			if(!reactions)
+				message_admins("Could not find a reverse reaction for [reagent.type]")
+				continue
+			var/datum/chemical_reaction/reverse_reaction = reactions[1]
 			var/sum_mass = 0
 			for(var/reactant in reverse_reaction.required_reagents)
 				var/datum/reagent/sub_reagent = GLOB.chemical_reagents_list[reactant]
 				if(!sub_reagent.mass)
-					stack_trace("[sub_reagent.type] is missing a mass and it cannot be used for [reagent.type]'s generated mass. Proceeding with a mass of 0. This reagent may have a mass that has yet to be generated however!")
+					message_admins("[sub_reagent.type] is missing a mass and it cannot be used for [reagent.type]'s generated mass. Proceeding with a mass of 0. This reagent may have a mass that has yet to be generated however!")
 				sum_mass += sub_reagent.mass
 
 			if(!sum_mass)
-				stack_trace("[reagent.type] is missing a mass and it cannot be generated. Proceeding with a mass of 0.")
+				message_admins("[reagent.type] is missing a mass and it cannot be generated. Proceeding with a mass of 0.")
 			reagent.mass = sum_mass
 		if(reagent.reagent_state == UNDEFINED)
 			switch(reagent.mass)
 				if(-INFINITY to 0)
-					stack_trace("Mass of reagent [reagent] is negative/nonsensical! [reagent.mass]")
+					message_admins("Mass of reagent [reagent] is negative/nonsensical! [reagent.mass]")
 				if(0 to 40)
 					reagent.reagent_state = GAS
 				if(40 to 120)
@@ -146,7 +150,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 
 		//if(!reagent.phase_states)
 			//Enable this later
-			//stack_trace("[reagent.type] is missing a phase profile.")
+			//message_admins("[reagent.type] is missing a phase profile.")
 
 		if(!reagent.ignite_temperature) //Autofill these vars
 			reagent.ignite_temperature = 300 + (reagent.mass * 10)
@@ -157,7 +161,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
 			object_list[phase_lookup] = reagent.phase_states[item] ///OBJECT = percentage
 		reagent.phase_states = object_list
-
+x
 
 ///////////////////////////////Main reagents code/////////////////////////////////////////////
 

@@ -42,6 +42,7 @@
 	taste_mult = 0.9
 	ph = 2.3
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 215
 
 /datum/reagent/toxin/mutagen/expose_mob(mob/living/carbon/exposed_mob, methods=TOUCH, reac_volume)
 	. = ..()
@@ -78,6 +79,7 @@
 	material = /datum/material/plasma
 	penetrates_skin = NONE
 	ph = 4
+	mass = 74
 	burning_temperature = 4500//plasma is hot!!
 	burning_volume = 0.3//But burns fast
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED

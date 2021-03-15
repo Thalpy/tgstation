@@ -207,11 +207,11 @@ export const ChemDispenser = (props, context) => {
                   </Box>
                   {chemical.pressureProfile.map(phase => (
                     <Box
-                      key={phase.key}>
-                      {phase.key}:
+                      key={chemical.name+phase.name}>
+                      {phase.name}:
                       <AnimatedNumber
                         initial={0}
-                        value={phase.value*100} />
+                        value={phase.ratio*100} />
                     </Box>
                   ))}
                 </>

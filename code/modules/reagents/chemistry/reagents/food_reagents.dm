@@ -23,6 +23,8 @@
 
 /datum/reagent/consumable/New()
 	. = ..()
+	if(!mass)
+		mass = rand(20,500)//Terrible way of doing it but I'm going crazy doing all of these by hand so this is a placeholder
 	if(glass_price)
 		AddElement(/datum/element/venue_price, glass_price)
 
@@ -205,6 +207,7 @@
 	overdose_threshold = 200 // Hyperglycaemic shock
 	taste_description = "sweetness"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 342
 
 // Plants should not have sugar, they can't use it and it prevents them getting water/ nutients, it is good for mold though...
 /datum/reagent/consumable/sugar/on_hydroponics_apply(obj/item/seeds/myseed, datum/reagents/chems, obj/machinery/hydroponics/mytray, mob/user)
@@ -230,6 +233,7 @@
 	color = "#899613" // rgb: 137, 150, 19
 	taste_description = "watery milk"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 152
 
 	// Compost for EVERYTHING
 /datum/reagent/consumable/virus_food/on_hydroponics_apply(obj/item/seeds/myseed, datum/reagents/chems, obj/machinery/hydroponics/mytray, mob/user)
@@ -244,6 +248,7 @@
 	color = "#792300" // rgb: 121, 35, 0
 	taste_description = "umami"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 129
 
 /datum/reagent/consumable/ketchup
 	name = "Ketchup"
@@ -252,7 +257,7 @@
 	color = "#731008" // rgb: 115, 16, 8
 	taste_description = "ketchup"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-
+	mass = 106
 
 /datum/reagent/consumable/capsaicin
 	name = "Capsaicin Oil"
@@ -390,6 +395,7 @@
 	taste_description = "salt"
 	penetrates_skin = NONE
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 58.4
 
 /datum/reagent/consumable/salt/expose_turf(turf/exposed_turf, reac_volume) //Creates an umbra-blocking salt pile
 	. = ..()
@@ -405,6 +411,7 @@
 	// no color (ie, black)
 	taste_description = "pepper"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 285
 
 /datum/reagent/consumable/coco
 	name = "Coco Powder"
@@ -414,6 +421,7 @@
 	color = "#302000" // rgb: 48, 32, 0
 	taste_description = "bitterness"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 180
 
 /datum/reagent/drug/mushroomhallucinogen
 	name = "Mushroom Hallucinogen"
@@ -424,6 +432,7 @@
 	ph = 11
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	addiction_types = list(/datum/addiction/hallucinogens = 12)
+	mass = 323
 
 /datum/reagent/drug/mushroomhallucinogen/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	if(!M.slurring)
@@ -455,6 +464,7 @@
 	taste_description = "garlic"
 	metabolization_rate = 0.15 * REAGENTS_METABOLISM
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 489
 
 /datum/reagent/consumable/garlic/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	if(isvampire(M)) //incapacitating but not lethal. Unfortunately, vampires cannot vomit.
@@ -476,6 +486,7 @@
 	color = "#FF00FF" // rgb: 255, 0, 255
 	taste_description = "childhood whimsy"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 180
 
 /datum/reagent/consumable/sprinkles/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	var/obj/item/organ/liver/liver = M.getorganslot(ORGAN_SLOT_LIVER)
@@ -491,6 +502,7 @@
 	color = "#302000" // rgb: 48, 32, 0
 	taste_description = "slime"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 302
 
 /datum/reagent/consumable/cornoil/expose_turf(turf/open/exposed_turf, reac_volume)
 	. = ..()
@@ -511,6 +523,7 @@
 	color = "#365E30" // rgb: 54, 94, 48
 	taste_description = "sweetness"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 612
 
 /datum/reagent/consumable/dry_ramen
 	name = "Dry Ramen"
@@ -622,6 +635,7 @@
 	metabolization_rate = 3 * REAGENTS_METABOLISM
 	taste_description = "sweet slime"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 198
 
 /datum/reagent/consumable/corn_syrup/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	holder.add_reagent(/datum/reagent/consumable/sugar, 3 * REM * delta_time)
@@ -635,6 +649,7 @@
 	metabolization_rate = 1 * REAGENTS_METABOLISM
 	taste_description = "sweetness"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 180
 
 	// On the other hand, honey has been known to carry pollen with it rarely. Can be used to take in a lot of plant qualities all at once, or harm the plant.
 /datum/reagent/consumable/honey/on_hydroponics_apply(obj/item/seeds/myseed, datum/reagents/chems, obj/machinery/hydroponics/mytray, mob/user)
@@ -671,6 +686,7 @@
 	color = "#DFDFDF"
 	taste_description = "mayonnaise"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 825
 
 /datum/reagent/consumable/mold // yeah, ok, togopal, I guess you could call that a condiment
 	name = "Mold"
@@ -678,6 +694,7 @@
 	color ="#708a88"
 	taste_description = "rancid fungus"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 516
 
 /datum/reagent/consumable/tearjuice
 	name = "Tear Juice"
@@ -686,6 +703,7 @@
 	taste_description = "bitterness"
 	ph = 5
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 90
 
 /datum/reagent/consumable/tearjuice/expose_mob(mob/living/exposed_mob, methods=TOUCH, reac_volume)
 	. = ..()
@@ -716,6 +734,7 @@
 	nutriment_factor = 15 * REAGENTS_METABOLISM
 	color = "#664330" // rgb: 102, 67, 48
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 52
 
 /datum/reagent/consumable/nutriment/stabilized/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	if(M.nutrition > NUTRITION_LEVEL_FULL - 25)
@@ -880,6 +899,7 @@
 	taste_description = "caramel"
 	reagent_state = SOLID
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 128
 
 /datum/reagent/consumable/char
 	name = "Char"

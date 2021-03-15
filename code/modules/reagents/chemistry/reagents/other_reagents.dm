@@ -150,6 +150,7 @@
 	glass_desc = "The father of all refreshments."
 	shot_glass_icon_state = "shotglassclear"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 18
 
 /*
  * Water reaction to turf
@@ -1551,6 +1552,7 @@
 	burning_volume = 0.05 //but has a lot of hydrocarbons
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	addiction_types = null
+	mass = 238
 
 /datum/reagent/stable_plasma
 	name = "Stable Plasma"
@@ -1561,6 +1563,7 @@
 	taste_mult = 1.5
 	ph = 1.5
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 47
 
 /datum/reagent/stable_plasma/on_mob_life(mob/living/carbon/C, delta_time, times_fired)
 	C.adjustPlasma(10 * REM * delta_time)
@@ -1574,6 +1577,7 @@
 	taste_description = "metal"
 	ph = 4.5
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 126.9
 
 /datum/reagent/carpet
 	name = "Carpet"
@@ -1583,6 +1587,7 @@
 	taste_description = "carpet" // Your tounge feels furry.
 	var/carpet_type = /turf/open/floor/carpet
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 142
 
 /datum/reagent/carpet/expose_turf(turf/exposed_turf, reac_volume)
 	if(isplatingturf(exposed_turf) || istype(exposed_turf, /turf/open/floor/iron))
@@ -1690,6 +1695,7 @@
 	taste_description = "chemicals"
 	ph = 7.8
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 79.9
 
 /datum/reagent/pentaerythritol
 	name = "Pentaerythritol"
@@ -1756,6 +1762,7 @@
 	color = "#AF14B7"
 	taste_description = "acid"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 58
 
 /datum/reagent/colorful_reagent
 	name = "Colorful Reagent"
@@ -1766,6 +1773,7 @@
 	taste_description = "rainbows"
 	var/can_colour_mobs = TRUE
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
+	mass = 123
 
 /datum/reagent/colorful_reagent/New()
 	SSticker.OnRoundstart(CALLBACK(src,.proc/UpdateColor))
