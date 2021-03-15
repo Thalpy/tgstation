@@ -31,8 +31,8 @@ export const BeakerContents = props => {
             <Box
               ml={1}
               style={{
-                'position': 'absolute',
-                'width': '100px',
+                'position': 'relative',
+                'width': '105px',
                 'height': '24px',
                 'background-color': '#363636',
                 'border': '2px solid #363636',
@@ -43,22 +43,24 @@ export const BeakerContents = props => {
                 !!phase.ratio && (
                   <Box
                     key={chemical.name+phase.name}
-                    position="absolute"
+                    position="relative"
                     color="#000000"
+
                     style={{
                       'position': 'absolute',
-                      'left': `${offset}`,
+                      'left': `${offset}px`,
                       'width': `${(phase.ratio*100)}%`,
                       'height': '20px',
                       'background-color': `${(phase.color)}`,
                     }}>
-                    {phase.ratio > 0.25 && phase.ratio*100+"%"}
+
                     <Tooltip
                       content={`${(phase.name)}: ${(phase.ratio*100)}%`} />
                       {incrementOffset(phase.ratio*100)}
                   </Box>
                 )
               ))}
+            {incrementOffset(-100)}
             </Box>
           </Flex.Item>
         </Flex>

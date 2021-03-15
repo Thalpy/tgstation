@@ -38,7 +38,7 @@
 	phase = GAS
 	density = 0.5
 	reaction_speed_modifier = 0.2
-	color = "#7ef0ff"
+	color = "#5fcffc"
 
 /datum/reagent_phase/gas/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	reaction_speed_modifier = clamp(pressure/100 * 0.2, 0.1, 0.8)
@@ -86,7 +86,7 @@
 	constant = 0.03
 	range = 25
 	density = 1
-	color = "#7eff89"
+	color = "#3dbe47"
 
 ///Default solid
 /datum/reagent_phase/linear/solid
@@ -96,7 +96,7 @@
 	range = 50
 	reaction_speed_modifier = 0.35
 	density = 1.5
-	color = "#ddff7e"
+	color = "#e4f582"
 
 ///solid to powder (powder cannot become solid without turning into a liquid/gas first)
 /datum/reagent_phase/linear/solid/proc/grind(datum/reagent/reagent, amount)
@@ -111,7 +111,7 @@
 	phase = POWDER
 	reaction_speed_modifier = 0.9
 	density = 1.25
-	color = "#f3b887"
+	color = "#e78c4f"
 
 /datum/reagent_phase/linear/solid/powder/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	if(reagent.phase_states[src] == 0) //Save some calculations - we can never generate powder this way
