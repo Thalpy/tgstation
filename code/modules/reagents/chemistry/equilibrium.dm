@@ -429,3 +429,35 @@
 /datum/equilibrium/proc/force_clear_reactive_agents()
 	for(var/reagent in reaction.required_reagents)
 		holder.remove_reagent(reagent, (multiplier * reaction.required_reagents[reagent]), safety = 1)
+
+///This causes the reaction to go in reverse instead
+/datum/equilibrium/reverse
+
+/datum/equilibrium/reverse/New(datum/chemical_reaction/input_reaction, datum/reagents/input_holder)
+	///Create a new reaction type
+	reaction = new input_reaction
+	///I think I have to copy these otherwise the reference will be overwritten
+	var/cached_results = reaction.results.Copy()
+	var/cached_reagents = reaction.required_reagents.Copy()
+	reaction.required_reagents = cached_results
+	reaction.results = cached_reagents
+	///Below is the same as above parent
+	holder = input_holder
+	if(!holder || !reaction) //sanity check
+		stack_trace("A new [type] was set up, with incorrect/null input vars!")
+		to_delete = TRUE
+		return
+	if(!check_inital_conditions()) //If we're outside of the scope of the reaction vars
+		to_delete = TRUE
+		return
+	if(!length(reaction.results)) //Come back to and revise the affected reactions in the next PR, this is a placeholder fix.
+		holder.instant_react(reaction) //Even if this check fails, there's a backup - look inside of calculate_yield()
+		to_delete = TRUE
+		return
+	LAZYADD(holder.reaction_list, src)
+	SSblackbox.record_feedback("tally", "Reversed chemical reactions", 1, "[reaction.type] attempts")
+
+//Since we created a special reaction - lets delete it
+/datum/equilibrium/Destroy()
+	QDEL_NULL(reaction)
+	..()

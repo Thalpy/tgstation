@@ -35,7 +35,6 @@
 /datum/reagent_phase/gas
 	phase = GAS
 	density = 0.5
-	priority = PHASE_PRIORITY_DEFAULT
 	reaction_speed_modifier = 0.2
 
 /datum/reagent_phase/gas/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
@@ -46,20 +45,22 @@
 	dissipate(reagent, reagent.mass * delta_time)
 
 ///liquid to gas
-/datum/reagent_phase/gas/transition_from(datum/reagent/reagent, amount)
+/datum/reagent_phase/gas/transition_from(datum/reagent/reagent, amount, delta_time)
 	reagent.holder.adjust_specific_reagent_ph(reagent.type, )
 
 ///If we're a gas and we're in an unsealed chamber
-/datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount)
+/datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount, delta_time)
 	if(reagent.holder.flags & SEALED) // Don't dissipate if we're sealed
 		return
-	amount = max((reagent.volume * reagent.get_phase_percent(phase)) - amount, 0)//Don't remove more than we have
+	amount = max((reagent.volume * reagent.get_phase_ratio(phase)) - amount, 0)//Don't remove more than we have
 	if(!amount)
 		return
-	//Move below to remove_reagent()
-	//reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_percent(phase)) - amount) / (reagent.volume - amount)
+	//Move below to remove_reagent() FERMI_TODO
+	//reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_ratio(phase)) - amount) / (reagent.volume - amount)
+	reagent.diffuse(amount, delta_time)
 	reagent.holder.remove_reagent(reagent.type, amount, phase = phase)
-	reagent.check_phase_ratio()
+	if(reagent)
+		reagent.check_phase_ratio()
 
 /datum/reagent_phase/linear
 	///The m (gradient/slope) aka equation of a line (y = mx+c): pressure = m * temperature + c See the readme and use the calculator
@@ -82,7 +83,6 @@
 	constant = 0.03
 	range = 25
 	density = 1
-	priority = PHASE_PRIORITY_STANDARD
 
 ///Default solid
 /datum/reagent_phase/linear/solid
@@ -92,13 +92,12 @@
 	range = 50
 	reaction_speed_modifier = 0.35
 	density = 1.5
-	priority = PHASE_PRIORITY_STANDARD
 
 ///solid to powder (powder cannot become solid without turning into a liquid/gas first)
 /datum/reagent_phase/linear/solid/proc/grind(datum/reagent/reagent, amount)
 	if(!reagent.has_phase(phase))
 		return FALSE
-	reagent.set_phase_percent(POWDER, get_phase_percent(phase))
+	reagent.set_phase_percent(POWDER, get_phase_ratio(phase))
 	reagent.set_phase_percent(phase, 0)
 	reagent.check_phase_ratio()
 
@@ -107,7 +106,6 @@
 	phase = SOLID
 	reaction_speed_modifier = 0.9
 	density = 1.1
-	priority = PHASE_PRIORITY_DEFAULT
 
 /datum/reagent_phase/linear/solid/powder/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	if(reagent.phase_states[src] == 0) //Save some calculations
@@ -125,11 +123,13 @@
 	///The chemical reaction that this reagent is MADE from - i.e. we're going backwards
 	var/datum/chemical_reaction/reverse_reaction
 
+/* FERMI_TODO
 /datum/reagent_phase/plasma/tick(datum/reagent/reagent, delta_time)
 	if(!reverse_reaction)
 		reverse_reaction = get_chemical_reaction(reagent.type)
 	reagent.holder.reverse_reaction(reverse_reaction, 0.85, delta_time)
 	holder.adjust_thermal_energy(100, 0, CHEMICAL_MAXIMUM_TEMPERATURE)
+*/
 
 /////////////The mass calculated/autofill methods/////////////////
 
@@ -171,51 +171,29 @@
 ///Low weight gas mixture used in pressure calculations
 /datum/pseudo_gas
 	///Associative gas list
-	var/list/reagent_gasses = list()
+	var/list/reagent_gasses = list( )
+	///Pressure from this
+	var/pressure
+	///reagent volume at capture
+	var/volume
 
-/datum/pseudo_gas/proc/convert_to_reagent(type)
-	switch(type)
-		if(/datum/gas/hydrogen)
-			return /datum/reagent/hydrogen
+/*
+ * Creates a new gas data object to store info about the gas pocket
+ * */
+/datum/pseudo_gas/New(/datum/gas_mixture/gas_mix, empty_volume)
+	if(volume == 0)
+		return FALSE
+	var/total_moles = gas_mix.total_moles()
+	for(var/datum/gas/gas_id as anything in gases)
+		var/reagent_id = GLOB.chemical_reagents_list[GLOB.gas_to_reagent[gas_id]]
+		if(!reagent_id)//There is no associated gas
 
-		if(/datum/gas/water_vapor)
-			return /datum/reagent/water
+		reagent_gasses[] = gas_mix[gas_id][MOLES] / total_moles() //reagent to ratio - It's a bit of a mouthful
+	pressure = gas_mix.return_pressure()
+	gas_mix.remove(empty_volume)
+	volume = empty_volume
 
-		if(/datum/gas/oxygen)
-			return /datum/reagent/oxygen
+/datum/pseudo_gas/unseal_into(/turf/exposed_turf)
+	exposed_turf.atmos_spawn_air("o2=[reac_volume/20];TEMP=[temp]")
 
-		if(/datum/gas/carbon_dioxide)
-			return /datum/reagent/carbondioxide
 
-		if(/datum/gas/nitrogen)
-			return /datum/reagent/nitrogen
-
-		if(/datum/gas/nitrous_oxide)
-			return /datum/reagent/nitrous_oxide
-
-		if(/datum/gas/helium)
-			return /datum/reagent/helium
-
-		if(/datum/gas/plasma)
-			return /datum/reagent/toxin/plasma
-
-		if(/datum/gas/bz)
-			return /datum/reagent/toxin/mindbreaker
-
-		if(/datum/gas/healium)
-			return /datum/reagent/healium
-
-		if(/datum/gas/stimulum)
-			return /datum/reagent/stimulum
-
-		if(/datum/gas/nitryl)
-			return /datum/reagent/nitryl
-
-		if(/datum/gas/freon)
-			return /datum/reagent/freon
-
-		if(/datum/gas/halon)
-			return /datum/reagent/halon
-
-		if(/datum/gas/hypernoblium)
-			return /datum/reagent/hypernoblium

@@ -118,6 +118,18 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	holder = null
 	phase_states = null //Do not destroy reference - it's a lookup table
 
+///A test called on this reagent from the unit testing subtype
+/datum/reagent/proc/unit_test()
+	. = list()
+	if(!reagent.mass)
+		. += "Generic failure: [reagent.type] is missing a mass.")
+	var/pass = FALSE
+	for(var/datum/reagent_phase/phase in reagent.phase_states)
+		pass += phase.determine_phase_percent(src, 300, 1)
+	if(!pass)
+		. += "Generic failure: [reagent.type] failed phase testing - no valid phase for 300K at 101kPa!")
+	return .
+
 /// Applies this reagent to an [/atom]
 /datum/reagent/proc/expose_atom(atom/exposed_atom, reac_volume)
 	SHOULD_CALL_PARENT(TRUE)
@@ -266,6 +278,14 @@ Primarily used in reagents/reaction_agents
 ///////////////////Phase related procs////////////////////////////////
 
 /*
+ *Diffuses out the reagent into the air, the actual removal is handled by the reagent phase datum
+ *
+ * arguments
+ * * Amount: how much was diffused
+ */
+/datum/reagent/proc/diffuse(amount, delta_time)
+
+/*
  * Calculates the new target for the reagent's phase states.
  * First we go through our list of possible phases - the ordering is important as we stop calculating as soon as we've hit a sum ratio of 1
  * Then after we have our target volumes in target_list() we then go over the same list and adjust the % values for each of the phases
@@ -273,7 +293,7 @@ Primarily used in reagents/reaction_agents
  */
 /datum/reagent/proc/adjust_phase_targets(delta_time)
 	var/sum_ratio //What is our total target to adjust ratios to?
-	var/list/target_list()
+	var/list/target_list = list()
 	for(var/datum/reagent_phase/phase in phase_states) //We prioritise the first phases in the list
 		if(sum_ratio >= 1)
 			target_list[phase] = 0
@@ -302,35 +322,48 @@ Primarily used in reagents/reaction_agents
 		if(target_list[phase] != phase_states[phase])//We updated - but we're not at our target yet
 			needs_update = TRUE
 	//Ensure we're 100%
-	check_phase_ratio()
+	check_phase_ratio(debug = TRUE)
 	return needs_update
 
-
-
 ///Gets the current ratio of the specified phase (between 0 and 1)
-/datum/reagent/proc/get_phase_percent(phase)
+///Arguments: phase - the define state (i.e. GAS, LIQUID, SOLID)
+/datum/reagent/proc/get_phase_ratio(phase)
 	for(var/datum/reagent_phase/phase_state in phase_states)
 		if(phase == phase_state.phase)
 			return phase_states[phase_state]
 	return 0
 
 ///Sets a specific phase to a certain ratio - call check_phase_ratio after using this.
-/datum/reagent/proc/get_phase_percent(phase, amount)
+/datum/reagent/proc/set_phase_percent(phase, amount)
 	for(var/datum/reagent_phase/phase_state in phase_states)
 		if(phase == phase_state.phase)
 			phase_states[phase_state] = amount
+			check_phase_ratio()
 			return TRUE
 	return FALSE
 
 ///Checks to make sure that the ratio values for all the phases are
-/datum/reagent/proc/check_phase_ratio()
+/datum/reagent/proc/check_phase_ratio(debug = FALSE)
 	var/sum_ratio = 0
 	for(var/datum/reagent_phase/phase_state in phase_states)
 		sum_ratio += phase_states[phase_state]
-	if(sum_ratio != 1)
-		debug_world("[reagent] didn't have correct ratios!")
+	if(sum_ratio != 1) //This can happen from set_phase_percent()
+		if(debug)
+			stack_trace("[reagent] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
 		for(var/datum/reagent_phase/phase_state in phase_states)
 			phase_states[phase_state] /= sum_ratio
+
+///Checks to see if the current reagent is in flux,
+///but doesn't check to see if the ratios are right - we shouldn't need to do this as processing should flag this correctly
+///Mostly a check for unsealed(), it's much better to call the holder's check_reagent_phase()
+///Consider removing as it might encourage poor coding practice
+/datum/reagent/proc/check_phase_flux()
+	if(holder.flags & SUBSYSTEM_PROCESS_PHASE)
+		return TRUE
+	if(!(holder.flags & SEALED) && get_phase_ratio(GAS)) //gases diffuse out when unsealed
+		return TRUE
+	adjust_phase_targets
+	return FALSE
 
 ///Checks the current phases to see if the reaction speed/reaction purity is affected by phases
 /datum/reagent/proc/consider_phase_modifiers(var/datum/equilibrium/reaction)

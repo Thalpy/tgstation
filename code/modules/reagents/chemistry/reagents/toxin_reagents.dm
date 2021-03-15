@@ -122,6 +122,13 @@
 		exposed_mob.adjust_fire_stacks(reac_volume / 5)
 		return
 
+/datum/reagent/toxin/plasma/diffuse(amount, delta_time)
+	. = ..()
+	var/turf/open/exposed_turf = get_turf(holder)
+	if(istype(exposed_turf))
+		var/temp = holder.chem_temp
+		exposed_turf.atmos_spawn_air("plasma=[amount];TEMP=[temp]")
+
 /datum/reagent/toxin/hot_ice
 	name = "Hot Ice Slush"
 	description = "Frozen plasma, worth its weight in gold, to the right people"
@@ -295,6 +302,19 @@
 
 /datum/reagent/toxin/mindbreaker/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	M.hallucination += 5 * REM * delta_time
+	return ..()
+
+/datum/reagent/toxin/mindbreaker/diffuse(amount, delta_time)
+	. = ..()
+	var/turf/open/exposed_turf = get_turf(holder)
+	if(istype(exposed_turf))
+		var/temp = holder.chem_temp
+		exposed_turf.atmos_spawn_air("bz=[amount];TEMP=[temp]")
+
+/datum/reagent/toxin/mindbreaker/expose_turf(turf/open/exposed_turf, reac_volume)
+	if(istype(exposed_turf))
+		var/temp = holder ? holder.chem_temp : T20C
+		exposed_turf.atmos_spawn_air("bz=[reac_volume];TEMP=[temp]")
 	return ..()
 
 /datum/reagent/toxin/plantbgone

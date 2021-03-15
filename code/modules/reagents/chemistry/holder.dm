@@ -2,6 +2,31 @@
 #define REAGENTS_UI_MODE_REAGENT 1
 #define REAGENTS_UI_MODE_RECIPE 2
 
+GLOBAL_LIST_INIT(gas_to_reagent, list(
+	/datum/gas/hydrogen = /datum/reagent/hydrogen,
+	/datum/gas/water_vapor = /datum/reagent/water,
+	/datum/gas/oxygen = /datum/reagent/oxygen,
+	/datum/gas/carbon_dioxide = /datum/reagent/carbondioxide,
+	/datum/gas/nitrogen = /datum/reagent/nitrogen,
+	/datum/gas/nitrous_oxide = /datum/reagent/nitrous_oxide,
+	/datum/gas/helium = /datum/reagent/helium,
+	/datum/gas/plasma = /datum/reagent/toxin/plasma,
+	/datum/gas/bz = /datum/reagent/toxin/mindbreaker,
+	/datum/gas/healium = /datum/reagent/healium,
+	/datum/gas/stimulum = /datum/reagent/stimulum,
+	/datum/gas/nitryl = /datum/reagent/nitryl,
+	/datum/gas/freon = /datum/reagent/freon,
+	/datum/gas/halon = /datum/reagent/halon,
+	/datum/gas/hypernoblium = /datum/reagent/hypernoblium,
+	//To add:
+	/datum/gas/tritium = /datum/reagent/tritium,
+	/datum/gas/pluoxium = /datum/reagent/pluoxium,
+	/datum/gas/miasma = /datum/reagent/miasma,
+	/datum/gas/proto_nitrate = /datum/reagent/proto_nitrate,
+	/datum/gas/zauker = /datum/reagent/zauker,
+	/datum/gas/antinoblium = /datum/reagent/antinoblium,
+	))
+
 /////////////These are used in the reagents subsystem init() and the reagent_id_typos.dm////////
 /proc/build_chemical_reagent_list()
 	//Chemical Reagents - Initialises all /datum/reagent into a list indexed by reagent id
@@ -110,28 +135,28 @@
 				stack_trace("[reagent.type] is missing a mass and it cannot be generated. Proceeding with a mass of 0.")
 			reagent.mass = sum_mass
 		if(reagent.reagent_state == UNDEFINED)
-			switch(mass)
+			switch(reagent.mass)
 				if(-INFINITY to 0)
 					stack_trace("Mass of reagent [reagent] is negative/nonsensical! [reagent.mass]")
 				if(0 to 40)
-					reagent_state = GAS
+					reagent.reagent_state = GAS
 				if(40 to 120)
-					reagent_state = LIQUID
+					reagent.reagent_state = LIQUID
 				if(120 to INFINITY)
-					reagent_state = SOLID
+					reagent.reagent_state = SOLID
 
 		//if(!reagent.phase_states)
 			//Enable this later
 			//stack_trace("[reagent.type] is missing a phase profile.")
 
 		if(!reagent.ignite_temperature) //Autofill these vars
-			reagent.ignite_temperature = 300 + (mass * 10)
+			reagent.ignite_temperature = 300 + (reagent.mass * 10)
 
 		///Now we convert the associated typepaths to live reference lookup objects
 		var/object_list = list()
-		for(item in reagent.phase_states)
-			var/datum/reagent_phase/phase_lookup = GLOB.chemical_phase_lookup[item]
-			object[phase_lookup] = active_phases[item] ///OBJECT = percentage
+		for(var/item in reagent.phase_states)
+			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
+			object_list[phase_lookup] = active_phases[item] ///OBJECT = percentage
 		reagent.phase_states = object_list
 
 
@@ -151,6 +176,8 @@
 	var/chem_temp = 150
 	///pH of the whole system
 	var/ph = CHEMICAL_NORMAL_PH
+	///Current pressure of the container
+	var/pressure = ONE_ATMOSPHERE
 	/// various flags, see code\__DEFINES\reagents.dm
 	var/flags
 	///list of reactions currently on going, this is a lazylist for optimisation
@@ -300,8 +327,16 @@
 		add_reagent(r_id, amt, data)
 
 
-/// Remove a specific reagent
-/datum/reagents/proc/remove_reagent(reagent, amount, safety = TRUE)//Added a safety check for the trans_id_to
+/*
+ * Remove a specific reagent from the holder, sends a signal too.
+ *
+ * Arguments:
+ * reagent - the reagent typepath that is to be removed
+ * amount - the volume that will be removed
+ * safety - if the removal will call handle_reactions() or not
+ * phase - If a target phase is specified, it will only remove the amount that that phase has, but no more.
+ */
+/datum/reagents/proc/remove_reagent(reagent, amount, safety = TRUE, phase = null)//Added a safety check for the trans_id_to
 	if(isnull(amount))
 		amount = 0
 		CRASH("null amount passed to reagent code")
@@ -312,12 +347,19 @@
 	if(amount < 0)
 		return FALSE
 
+	if()
+
+
 	var/list/cached_reagents = reagent_list
 	for(var/datum/reagent/cached_reagent as anything in cached_reagents)
 		if(cached_reagent.type == reagent)
 			//clamp the removal amount to be between current reagent amount
 			//and zero, to prevent removing more than the holder has stored
-			amount = clamp(amount, 0, cached_reagent.volume)
+			if(isnull(phase))
+				amount = clamp(amount, 0, cached_reagent.volume)
+			else //Otherwise limit the amount we remove by the phase ratio
+				amount = clamp(amount, 0, cached_reagent.volume * cached_reagent.get_phase_ratio(phase))
+				cached_reagent.set_phase_percent(phase, amount)
 			cached_reagent.volume -= amount
 			update_total()
 			if(!safety)//So it does not handle reactions when it need not to
@@ -1186,48 +1228,6 @@
 
 	selected_reaction.on_reaction(null, src, multiplier)
 
-///Reverses a reaction - i.e. creates required reagents from the input reaction while removing products
-///Does not remove all of it, instead it takes the input
-/datum/reagents/proc/reverse_react(datum/chemical_reaction/reaction, purity_mod, delta_time)
-	var/multiplier = INFINITY
-	for(var/reagent in reaction.results)
-		multiplier = min(cached_required_reagents[reagent], get_reagent_amount(reagent))
-	if(multiplier == 0)
-		stack_trace("Attempted to reverse a reaction for [reaction], but the multiplier was 0!")
-		return FALSE
-
-	var/sum_purity = 0
-	for(var/_reagent in reaction.results)
-		var/datum/reagent/reagent = has_reagent(_reagent)
-		sum_purity += reagent.purity
-		remove_reagent(_reagent, (multiplier * cached_required_reagents[_reagent]), safety = 1)
-	sum_purity /= cached_required_reagents.len
-	sum_purity *= purity_mod
-
-	for(var/product in reaction.required_reagents)
-		var/yield = (cached_results[product]*multiplier)*sum_purity
-		SSblackbox.record_feedback("tally", "chemical_reaction_reversal", yield, product)
-		add_reagent(product, yield, null, chem_temp, sum_purity)
-
-		//Apply pH changes
-		var/pH_adjust
-		if(reaction.reaction_flags & REACTION_PH_VOL_CONSTANT)
-			pH_adjust = (step_add/target_vol)*(reaction.H_ion_release*h_ion_mod)
-		else
-			pH_adjust = step_add*(reaction.H_ion_release*h_ion_mod)
-		holder.adjust_specific_reagent_ph(product, -pH_adjust)
-
-	//Apply thermal output of reaction to beaker
-	if(reaction.reaction_flags & REACTION_HEAT_ARBITARY)
-		holder.chem_temp -= clamp((reaction.thermic_constant* total_step_added*thermic_mod), 0, CHEMICAL_MAXIMUM_TEMPERATURE) //old method - for every bit added, the whole temperature is adjusted
-	else //Standard mechanics
-		var/heat_energy = reaction.thermic_constant * total_step_added * thermic_mod * SPECIFIC_HEAT_DEFAULT
-		holder.adjust_thermal_energy(-heat_energy, 0, CHEMICAL_MAXIMUM_TEMPERATURE) //heat is relative to the beaker conditions
-
-
-	reaction.on_reaction(null, src, multiplier)
-
-
 ///Possibly remove - see if multiple instant reactions is okay (Though, this "sorts" reactions by temp decending)
 ///Presently unused
 /datum/reagents/proc/get_priority_instant_reaction(list/possible_reactions)
@@ -1258,13 +1258,24 @@
 	recalculate_sum_ph()
 	check_reagent_phase()
 
+/* 		~~~			Phase/pressure methods			~~~		 */
+
+///Call this to check the phase states of all of the reagents within the holder, it will start processing them if true.
 /datum/reagents/proc/check_reagent_phase()
+	if(holder.flags & SUBSYSTEM_PROCESS_PHASE)
+		if(!(datum_flags & DF_ISPROCESSING))
+			stack_trace("Desync error: holder of [my_atom] has the processing flags SUBSYSTEM_PROCESS_PHASE while it's DF_ISPROCESSING flag is incorrectly set!")
+		return TRUE
 	var/needs_processing = FALSE
 	for(var/datum/reagent/reagent as anything in reagent_list)
 		needs_processing = reagent.check_phase_flux()
 	if(needs_processing)
 		SSreagents.start_processing(src, SUBSYSTEM_PROCESS_PHASE)
+		return TRUE
+	return FALSE
 
+///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this
+///Processes the phases of each reagent in the holder
 /datum/reagents/proc/process_phase(delta_time)
 	var/needs_update = FALSE
 	for(var/datum/reagent/reagent as anything in reagent_list)
@@ -1283,18 +1294,18 @@
 	for(var/datum/reagent/reagent as anything in reagent_list)
 		active_states = 0
 		for(var/datum/reagent_phase/phase in reagent.phase_states)
-			if(!phase_states[phase]) //phase is empty
+			if(!reagent.phase_states[phase]) //phase is empty
 				continue
 			active_states++
 			//sum_volume += ((reagent.volume * phase_states[phase]) / phase.density) / reagent.volume
 			//Consider moving the log function to outside of the loop
-			sum_moles = log(((reagent.volume * phase_states[phase] * reagent.mass) / phase.density), 10)
+			sum_moles = log(((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density), 10)
 		//pV = nRT except I fudge numbers and ideology is gone
 		//1atm = 101 kPa, but lets just make it simple and make it 100
 		sum_pressure += (sum_moles * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume * active_states)
 	sum_pressure /= reagent_list.len
 	//If we're in a holder that isn't sealed
-	if(flags & SEALED) //TODO
+	if(flags & SEALED) //FERMI_TODO
 		sum_pressure = ((sum_pressure * total_volume) + (sealed_air_mix.get_pressure() * (maximum_volume - total_volume))) / total_volume
 	else
 		var/datum/gas_mixture/local_gas = my_atom.return_air()
@@ -1305,12 +1316,30 @@
 	//Update our pressure
 	pressure = sum_pressure
 	//If we're over the pressure value of the holder - i.e. are we gonna blow?
-	check_holder_pressure()
+	//FERMI_TODO
+	//check_holder_pressure()
 
+/*
+ * Seals up a beaker -
+ */
 /datum/reagents/proc/seal()
-	var/datum/gas_mixture/local_gas = my_atom.return_air()
-	air_mix = local_gas.copy()
+	var/empty_volume = maximum_volume - total_volume
+	if(empty_volume == 0)
+		return FALSE
+	var/datum/gas_mixture/gas_mix = my_atom.return_air()
+	var/total_moles = gas_mix.total_moles()
+	for(var/gas_id as anything in gas_mix)
+		add_reagent(GLOB.gas_to_reagent[gas_id], (gas_mix[gas_id][MOLES] / total_moles()) * empty_volume, gas_mix.temperature)
+	gas_mix.remove(empty_volume)
+	flags |= SEALED
 
+/datum/reagents/proc/unseal()
+	flags &= ~SEALED
+	check_reagent_phase()
+	//This should be handled by phase states in flux
+
+
+/* 		~~~		END	Phase/pressure methods	END		~~~		 */
 
 /**
  * Applies the relevant expose_ proc for every reagent in this holder

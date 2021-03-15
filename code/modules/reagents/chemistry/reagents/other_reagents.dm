@@ -219,6 +219,13 @@
 		//You don't belong in this world, monster!
 		chems.remove_reagent(/datum/reagent/water, chems.get_reagent_amount(src.type))
 
+/datum/reagent/gas/diffuse(amount, delta_time)
+	. = ..()
+	var/turf/open/exposed_turf = get_turf(holder)
+	if(istype(exposed_turf))
+		var/temp = holder.chem_temp
+		exposed_turf.atmos_spawn_air("water_vapor=[amount];TEMP=[temp]")
+
 /datum/reagent/water/holywater
 	name = "Holy Water"
 	description = "Water blessed by some deity."
@@ -755,24 +762,6 @@
 			M.emote(pick("twitch","drool","moan","gasp"))
 	..()
 
-/datum/reagent/oxygen
-	name = "Oxygen"
-	description = "A colorless, odorless gas. Grows on trees but is still pretty valuable."
-	reagent_state = GAS
-	color = "#808080" // rgb: 128, 128, 128
-	taste_mult = 0 // oderless and tasteless
-	ph = 9.2//It's acutally a huge range and very dependant on the chemistry but ph is basically a made up var in it's implementation anyways
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 16
-
-
-/datum/reagent/oxygen/expose_turf(turf/open/exposed_turf, reac_volume)
-	. = ..()
-	if(istype(exposed_turf))
-		var/temp = holder ? holder.chem_temp : T20C
-		exposed_turf.atmos_spawn_air("o2=[reac_volume/20];TEMP=[temp]")
-	return
-
 /datum/reagent/copper
 	name = "Copper"
 	description = "A highly ductile metal. Things made out of copper aren't very durable, but it makes a decent material for electrical wiring."
@@ -792,31 +781,6 @@
 	reac_volume = min(reac_volume, M.amount)
 	new/obj/item/stack/sheet/bronze(get_turf(M), reac_volume)
 	M.use(reac_volume)
-
-/datum/reagent/nitrogen
-	name = "Nitrogen"
-	description = "A colorless, odorless, tasteless gas. A simple asphyxiant that can silently displace vital oxygen."
-	reagent_state = GAS
-	color = "#808080" // rgb: 128, 128, 128
-	taste_mult = 0
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 14
-
-/datum/reagent/nitrogen/expose_turf(turf/open/exposed_turf, reac_volume)
-	if(istype(exposed_turf))
-		var/temp = holder ? holder.chem_temp : T20C
-		exposed_turf.atmos_spawn_air("n2=[reac_volume/20];TEMP=[temp]")
-	return ..()
-
-/datum/reagent/hydrogen //Consider editing to diatomic hydrogen
-	name = "Hydrogen"
-	description = "A colorless, odorless, nonmetallic, tasteless, highly combustible diatomic gas."
-	reagent_state = GAS
-	color = "#808080" // rgb: 128, 128, 128
-	taste_mult = 0
-	ph = 0.1//Now I'm stuck in a trap of my own design. Maybe I should make -ve phes? (not 0 so I don't get div/0 errors)
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 1
 
 /datum/reagent/potassium
 	name = "Potassium"
@@ -842,13 +806,6 @@
 		M.emote(pick("twitch","drool","moan"))
 	M.adjustOrganLoss(ORGAN_SLOT_BRAIN, 0.5*delta_time)
 	..()
-
-/datum/reagent/helium
-	name = "Helium"
-	description = "A non-toxic, inert, monatomic gas. A very noble gas indeed!"
-	color = "#93fff6" // rgb: 72, 72, 72A
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 4
 
 /datum/reagent/sulfur
 	name = "Sulfur"
@@ -1363,182 +1320,6 @@
 		if(myseed)
 			myseed.adjust_yield(round(chems.get_reagent_amount(src.type) * 1))
 			myseed.adjust_instability(-round(chems.get_reagent_amount(src.type) * 1))
-
-/datum/reagent/carbondioxide
-	name = "Carbon Dioxide"
-	reagent_state = GAS
-	description = "A gas commonly produced by burning carbon fuels. You're constantly producing this in your lungs."
-	color = "#B0B0B0" // rgb : 192, 192, 192
-	taste_description = "something unknowable"
-	ph = 6
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 44
-
-
-/datum/reagent/carbondioxide/expose_turf(turf/open/exposed_turf, reac_volume)
-	if(istype(exposed_turf))
-		var/temp = holder ? holder.chem_temp : T20C
-		exposed_turf.atmos_spawn_air("co2=[reac_volume/20];TEMP=[temp]")
-	return ..()
-
-/datum/reagent/nitrous_oxide
-	name = "Nitrous Oxide"
-	description = "A potent oxidizer used as fuel in rockets and as an anaesthetic during surgery."
-	reagent_state = LIQUID
-	metabolization_rate = 1.5 * REAGENTS_METABOLISM
-	color = "#808080"
-	taste_description = "sweetness"
-	ph = 5.8
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-
-/datum/reagent/nitrous_oxide/expose_turf(turf/open/exposed_turf, reac_volume)
-	. = ..()
-	if(istype(exposed_turf))
-		var/temp = holder ? holder.chem_temp : T20C
-		exposed_turf.atmos_spawn_air("n2o=[reac_volume/20];TEMP=[temp]")
-
-/datum/reagent/nitrous_oxide/expose_mob(mob/living/exposed_mob, methods=TOUCH, reac_volume)
-	. = ..()
-	if(methods & VAPOR)
-		exposed_mob.drowsyness += max(round(reac_volume, 1), 2)
-
-/datum/reagent/nitrous_oxide/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
-	M.drowsyness += 2 * REM * delta_time
-	if(ishuman(M))
-		var/mob/living/carbon/human/H = M
-		H.blood_volume = max(H.blood_volume - (10 * REM * delta_time), 0)
-	if(DT_PROB(10, delta_time))
-		M.losebreath += 2
-		M.set_confusion(min(M.get_confusion() + 2, 5))
-	..()
-
-/datum/reagent/stimulum
-	name = "Stimulum"
-	description = "An unstable experimental gas that greatly increases the energy of those that inhale it, while dealing increasing toxin damage over time."
-	reagent_state = GAS
-	metabolization_rate = REAGENTS_METABOLISM * 0.5 // Because stimulum/nitryl/freon/hypernoblium are handled through gas breathing, metabolism must be lower for breathcode to keep up
-	color = "E1A116"
-	taste_description = "sourness"
-	ph = 1.8
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	addiction_types = list(/datum/addiction/stimulants = 14)
-	mass = 27
-
-/datum/reagent/stimulum/on_mob_metabolize(mob/living/L)
-	..()
-	ADD_TRAIT(L, TRAIT_STUNIMMUNE, type)
-	ADD_TRAIT(L, TRAIT_SLEEPIMMUNE, type)
-
-/datum/reagent/stimulum/on_mob_end_metabolize(mob/living/L)
-	REMOVE_TRAIT(L, TRAIT_STUNIMMUNE, type)
-	REMOVE_TRAIT(L, TRAIT_SLEEPIMMUNE, type)
-	..()
-
-/datum/reagent/stimulum/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
-	M.adjustStaminaLoss(-2 * REM * delta_time, 0)
-	M.adjustToxLoss(0.1 * current_cycle * REM * delta_time, 0) // 1 toxin damage per cycle at cycle 10
-	..()
-
-/datum/reagent/nitryl
-	name = "Nitryl"
-	description = "A highly reactive gas that makes you feel faster."
-	reagent_state = GAS
-	metabolization_rate = REAGENTS_METABOLISM * 0.5 // Because stimulum/nitryl/freon/hypernoblium are handled through gas breathing, metabolism must be lower for breathcode to keep up
-	color = "90560B"
-	taste_description = "burning"
-	ph = 2
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 21
-
-/datum/reagent/nitryl/on_mob_metabolize(mob/living/L)
-	..()
-	L.add_movespeed_modifier(/datum/movespeed_modifier/reagent/nitryl)
-
-/datum/reagent/nitryl/on_mob_end_metabolize(mob/living/L)
-	L.remove_movespeed_modifier(/datum/movespeed_modifier/reagent/nitryl)
-	..()
-
-/datum/reagent/freon
-	name = "Freon"
-	description = "A powerful heat absorbent."
-	reagent_state = GAS
-	metabolization_rate = REAGENTS_METABOLISM * 0.5 // Because stimulum/nitryl/freon/hypernoblium are handled through gas breathing, metabolism must be lower for breathcode to keep up
-	color = "90560B"
-	taste_description = "burning"
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 11
-
-/datum/reagent/freon/on_mob_metabolize(mob/living/L)
-	. = ..()
-	L.add_movespeed_modifier(/datum/movespeed_modifier/reagent/freon)
-
-/datum/reagent/freon/on_mob_end_metabolize(mob/living/L)
-	L.remove_movespeed_modifier(/datum/movespeed_modifier/reagent/freon)
-	return ..()
-
-/datum/reagent/hypernoblium
-	name = "Hyper-Noblium"
-	description = "A suppressive gas that stops gas reactions on those who inhale it."
-	reagent_state = GAS
-	metabolization_rate = REAGENTS_METABOLISM * 0.5 // Because stimulum/nitryl/freon/hyper-nob are handled through gas breathing, metabolism must be lower for breathcode to keep up
-	color = "90560B"
-	taste_description = "searingly cold"
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 19
-
-/datum/reagent/hypernoblium/on_mob_metabolize(mob/living/L)
-	. = ..()
-	if(isplasmaman(L))
-		ADD_TRAIT(L, TRAIT_NOFIRE, type)
-
-/datum/reagent/hypernoblium/on_mob_end_metabolize(mob/living/L)
-	if(isplasmaman(L))
-		REMOVE_TRAIT(L, TRAIT_NOFIRE, type)
-	return ..()
-
-/datum/reagent/healium
-	name = "Healium"
-	description = "A powerful sleeping agent with healing properties"
-	reagent_state = GAS
-	metabolization_rate = REAGENTS_METABOLISM * 0.5
-	color = "90560B"
-	taste_description = "rubbery"
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 11
-
-/datum/reagent/healium/on_mob_metabolize(mob/living/L)
-	. = ..()
-	L.PermaSleeping()
-
-/datum/reagent/healium/on_mob_end_metabolize(mob/living/L)
-	L.SetSleeping(10)
-	return ..()
-
-/datum/reagent/healium/on_mob_life(mob/living/L, delta_time, times_fired)
-	. = ..()
-	L.adjustFireLoss(-2 * REM * delta_time, FALSE)
-	L.adjustToxLoss(-5 * REM * delta_time, FALSE)
-	L.adjustBruteLoss(-2 * REM * delta_time, FALSE)
-
-/datum/reagent/halon
-	name = "Halon"
-	description = "A fire suppression gas that removes oxygen and cools down the area"
-	reagent_state = GAS
-	metabolization_rate = REAGENTS_METABOLISM * 0.5
-	color = "90560B"
-	taste_description = "minty"
-	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
-	mass = 26
-
-/datum/reagent/halon/on_mob_metabolize(mob/living/L)
-	. = ..()
-	L.add_movespeed_modifier(/datum/movespeed_modifier/reagent/halon)
-	ADD_TRAIT(L, TRAIT_RESISTHEAT, type)
-
-/datum/reagent/halon/on_mob_end_metabolize(mob/living/L)
-	L.remove_movespeed_modifier(/datum/movespeed_modifier/reagent/halon)
-	REMOVE_TRAIT(L, TRAIT_RESISTHEAT, type)
-	return ..()
 
 /////////////////////////Colorful Powder////////////////////////////
 //For colouring in /proc/mix_color_from_reagents
