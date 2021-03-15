@@ -1,7 +1,7 @@
 
 /datum/chemical_reaction/formaldehyde
 	results = list(/datum/reagent/toxin/formaldehyde = 3)
-	required_reagents = list(/datum/reagent/consumable/ethanol = 1, /datum/reagent/oxygen = 1, /datum/reagent/silver = 1)
+	required_reagents = list(/datum/reagent/consumable/ethanol = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/silver = 1)
 	required_temp = 420
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DAMAGING | REACTION_TAG_CHEMICAL | REACTION_TAG_BRUTE | REACTION_TAG_TOXIN
 
@@ -13,7 +13,7 @@
 
 /datum/chemical_reaction/cyanide
 	results = list(/datum/reagent/toxin/cyanide = 3)
-	required_reagents = list(/datum/reagent/fuel/oil = 1, /datum/reagent/ammonia = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/fuel/oil = 1, /datum/reagent/ammonia = 1, /datum/reagent/gas/oxygen = 1)
 	required_temp = 380
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DAMAGING | REACTION_TAG_OXY | REACTION_TAG_TOXIN
 
@@ -24,13 +24,13 @@
 
 /datum/chemical_reaction/facid
 	results = list(/datum/reagent/toxin/acid/fluacid = 4)
-	required_reagents = list(/datum/reagent/toxin/acid = 1, /datum/reagent/fluorine = 1, /datum/reagent/hydrogen = 1, /datum/reagent/potassium = 1)
+	required_reagents = list(/datum/reagent/toxin/acid = 1, /datum/reagent/fluorine = 1, /datum/reagent/gas/hydrogen = 1, /datum/reagent/potassium = 1)
 	required_temp = 380
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DAMAGING | REACTION_TAG_PLANT | REACTION_TAG_BURN | REACTION_TAG_TOXIN
 
 /datum/chemical_reaction/nitracid
 	results = list(/datum/reagent/toxin/acid/nitracid = 2)
-	required_reagents = list(/datum/reagent/toxin/acid/fluacid = 1, /datum/reagent/nitrogen = 1,  /datum/reagent/hydrogen_peroxide = 1)
+	required_reagents = list(/datum/reagent/toxin/acid/fluacid = 1, /datum/reagent/gas/nitrogen = 1,  /datum/reagent/gas/hydrogen_peroxide = 1)
 	required_temp = 480
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DAMAGING | REACTION_TAG_BURN | REACTION_TAG_TOXIN
 
@@ -51,7 +51,7 @@
 
 /datum/chemical_reaction/lexorin
 	results = list(/datum/reagent/toxin/lexorin = 3)
-	required_reagents = list(/datum/reagent/toxin/plasma = 1, /datum/reagent/hydrogen = 1, /datum/reagent/medicine/salbutamol = 1)
+	required_reagents = list(/datum/reagent/toxin/plasma = 1, /datum/reagent/gas/hydrogen = 1, /datum/reagent/medicine/salbutamol = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DAMAGING | REACTION_TAG_OXY
 
 /datum/chemical_reaction/hot_ice_melt
@@ -83,7 +83,7 @@
 
 /datum/chemical_reaction/mindbreaker
 	results = list(/datum/reagent/toxin/mindbreaker = 5)
-	required_reagents = list(/datum/reagent/silicon = 1, /datum/reagent/hydrogen = 1, /datum/reagent/medicine/c2/multiver = 1)
+	required_reagents = list(/datum/reagent/silicon = 1, /datum/reagent/gas/hydrogen = 1, /datum/reagent/medicine/c2/multiver = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DAMAGING | REACTION_TAG_OTHER
 
 /datum/chemical_reaction/heparin

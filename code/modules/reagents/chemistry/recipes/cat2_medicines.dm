@@ -50,7 +50,7 @@
 
 /datum/chemical_reaction/medicine/libital
 	results = list(/datum/reagent/medicine/c2/libital = 3)
-	required_reagents = list(/datum/reagent/phenol = 1, /datum/reagent/oxygen = 1, /datum/reagent/nitrogen = 1)
+	required_reagents = list(/datum/reagent/phenol = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/gas/nitrogen = 1)
 	required_temp = 225
 	optimal_temp = 700
 	overheat_temp = 840
@@ -91,7 +91,7 @@
 //Since it requires silver - I don't want to make it too hard
 /datum/chemical_reaction/medicine/lenturi
 	results = list(/datum/reagent/medicine/c2/lenturi = 5)
-	required_reagents = list(/datum/reagent/ammonia = 1, /datum/reagent/silver = 1, /datum/reagent/sulfur = 1, /datum/reagent/oxygen = 1, /datum/reagent/chlorine = 1)
+	required_reagents = list(/datum/reagent/ammonia = 1, /datum/reagent/silver = 1, /datum/reagent/sulfur = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/chlorine = 1)
 	required_temp = 200
 	optimal_temp = 300
 	overheat_temp = 500
@@ -109,7 +109,7 @@
 
 /datum/chemical_reaction/medicine/aiuri
 	results = list(/datum/reagent/medicine/c2/aiuri = 4)
-	required_reagents = list(/datum/reagent/ammonia = 1, /datum/reagent/toxin/acid = 1, /datum/reagent/hydrogen = 2)
+	required_reagents = list(/datum/reagent/ammonia = 1, /datum/reagent/toxin/acid = 1, /datum/reagent/gas/hydrogen = 2)
 	required_temp = 50
 	optimal_temp = 300
 	overheat_temp = 315
@@ -165,7 +165,7 @@
 
 /datum/chemical_reaction/medicine/convermol
 	results = list(/datum/reagent/medicine/c2/convermol = 3)
-	required_reagents = list(/datum/reagent/hydrogen = 1, /datum/reagent/fluorine = 1, /datum/reagent/fuel/oil = 1)
+	required_reagents = list(/datum/reagent/gas/hydrogen = 1, /datum/reagent/fluorine = 1, /datum/reagent/fuel/oil = 1)
 	required_temp = 370
 	mix_message = "The mixture rapidly turns into a dense pink liquid."
 	optimal_temp = 420
@@ -184,15 +184,15 @@
 
 /datum/chemical_reaction/medicine/convermol/reaction_step(datum/equilibrium/reaction, datum/reagents/holder, delta_t, delta_ph, step_reaction_vol)
 	. = ..()
-	var/datum/reagent/oxy = holder.has_reagent(/datum/reagent/oxygen)
+	var/datum/reagent/oxy = holder.has_reagent(/datum/reagent/gas/oxygen)
 	if(oxy)
-		holder.remove_reagent(/datum/reagent/oxygen, 0.25)
+		holder.remove_reagent(/datum/reagent/gas/oxygen, 0.25)
 	else
 		reaction.delta_t = delta_t/10 //slow without oxygen
 
 /datum/chemical_reaction/medicine/convermol/overheated(datum/reagents/holder, datum/equilibrium/equilibrium, impure = FALSE)
 	var/range = impure ? 4 : 3
-	if(holder.has_reagent(/datum/reagent/oxygen))
+	if(holder.has_reagent(/datum/reagent/gas/oxygen))
 		explode_shockwave(holder, equilibrium, range) //damage 5
 	else
 		explode_shockwave(holder, equilibrium, range, damage = 2)
@@ -205,7 +205,7 @@
 
 /datum/chemical_reaction/medicine/tirimol
 	results = list(/datum/reagent/medicine/c2/tirimol = 5)
-	required_reagents = list(/datum/reagent/nitrogen = 3, /datum/reagent/acetone = 2)
+	required_reagents = list(/datum/reagent/gas/nitrogen = 3, /datum/reagent/acetone = 2)
 	required_catalysts = list(/datum/reagent/toxin/acid = 1)
 	mix_message = "The mixture turns into a tired reddish pink liquid."
 	optimal_temp = 1
@@ -225,16 +225,16 @@
 
 /datum/chemical_reaction/medicine/tirimol/reaction_step(datum/equilibrium/reaction, datum/reagents/holder, delta_t, delta_ph, step_reaction_vol)
 	. = ..()
-	var/datum/reagent/oxy = holder.has_reagent(/datum/reagent/oxygen)
+	var/datum/reagent/oxy = holder.has_reagent(/datum/reagent/gas/oxygen)
 	if(oxy)
-		holder.remove_reagent(/datum/reagent/oxygen, 0.25)
+		holder.remove_reagent(/datum/reagent/gas/oxygen, 0.25)
 	else
 		holder.adjust_all_reagents_ph(-0.05*step_reaction_vol)//pH drifts faster
 
 //Sleepytime for chem
 /datum/chemical_reaction/medicine/tirimol/overheated(datum/reagents/holder, datum/equilibrium/equilibrium, impure = FALSE)
 	var/bonus = impure ? 2 : 1
-	if(holder.has_reagent(/datum/reagent/oxygen))
+	if(holder.has_reagent(/datum/reagent/gas/oxygen))
 		explode_attack_chem(holder, equilibrium, /datum/reagent/inverse/healing/tirimol, 7.5*bonus, 2, ignore_eyes = TRUE) //since we're smoke/air based
 		clear_products(holder, 5)//since we attacked
 		explode_invert_smoke(holder, equilibrium, 3)
@@ -251,7 +251,7 @@
 
 /datum/chemical_reaction/medicine/seiver
 	results = list(/datum/reagent/medicine/c2/seiver = 3)
-	required_reagents = list(/datum/reagent/nitrogen = 1, /datum/reagent/potassium = 1, /datum/reagent/aluminium = 1)
+	required_reagents = list(/datum/reagent/gas/nitrogen = 1, /datum/reagent/potassium = 1, /datum/reagent/aluminium = 1)
 	mix_message = "The mixture gives out a goopy slorp."
 	is_cold_recipe = TRUE
 	required_temp = 320
@@ -315,7 +315,7 @@
 
 /datum/chemical_reaction/medicine/syriniver
 	results = list(/datum/reagent/medicine/c2/syriniver = 5)
-	required_reagents = list(/datum/reagent/sulfur = 1, /datum/reagent/fluorine = 1, /datum/reagent/toxin = 1, /datum/reagent/nitrous_oxide = 2)
+	required_reagents = list(/datum/reagent/sulfur = 1, /datum/reagent/fluorine = 1, /datum/reagent/toxin = 1, /datum/reagent/gas/nitrous_oxide = 2)
 	required_temp = 250
 	optimal_temp = 310
 	overheat_temp = NO_OVERHEAT

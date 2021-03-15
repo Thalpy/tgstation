@@ -6,7 +6,7 @@
 
 /datum/chemical_reaction/lube
 	results = list(/datum/reagent/lube = 4)
-	required_reagents = list(/datum/reagent/water = 1, /datum/reagent/silicon = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/water = 1, /datum/reagent/silicon = 1, /datum/reagent/gas/oxygen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE | REACTION_TAG_OTHER
 
 /datum/chemical_reaction/spraytan
@@ -21,12 +21,12 @@
 
 /datum/chemical_reaction/impedrezene
 	results = list(/datum/reagent/impedrezene = 2)
-	required_reagents = list(/datum/reagent/mercury = 1, /datum/reagent/oxygen = 1, /datum/reagent/consumable/sugar = 1)
+	required_reagents = list(/datum/reagent/mercury = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/consumable/sugar = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE | REACTION_TAG_ORGAN
 
 /datum/chemical_reaction/cryptobiolin
 	results = list(/datum/reagent/cryptobiolin = 3)
-	required_reagents = list(/datum/reagent/potassium = 1, /datum/reagent/oxygen = 1, /datum/reagent/consumable/sugar = 1)
+	required_reagents = list(/datum/reagent/potassium = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/consumable/sugar = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE | REACTION_TAG_OTHER
 
 /datum/chemical_reaction/glycerol
@@ -110,7 +110,7 @@
 		new /obj/item/soap/omega(location)
 
 /datum/chemical_reaction/candlefication
-	required_reagents = list(/datum/reagent/liquidgibs = 5, /datum/reagent/oxygen  = 5) //
+	required_reagents = list(/datum/reagent/liquidgibs = 5, /datum/reagent/gas/oxygen  = 5) //
 	required_temp = 374
 	mob_react = FALSE
 	reaction_flags = REACTION_INSTANT
@@ -134,14 +134,14 @@
 	return
 
 /datum/chemical_reaction/carbondioxide
-	results = list(/datum/reagent/carbondioxide = 3)
-	required_reagents = list(/datum/reagent/carbon = 1, /datum/reagent/oxygen = 2)
+	results = list(/datum/reagent/gas/carbon_dioxide = 3)
+	required_reagents = list(/datum/reagent/carbon = 1, /datum/reagent/gas/oxygen = 2)
 	required_temp = 777 // pure carbon isn't especially reactive.
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE
 
 /datum/chemical_reaction/nitrous_oxide
-	results = list(/datum/reagent/nitrous_oxide = 5)
-	required_reagents = list(/datum/reagent/ammonia = 2, /datum/reagent/nitrogen = 1, /datum/reagent/oxygen = 2)
+	results = list(/datum/reagent/gas/nitrous_oxide = 5)
+	required_reagents = list(/datum/reagent/ammonia = 2, /datum/reagent/gas/nitrogen = 1, /datum/reagent/gas/oxygen = 2)
 	required_temp = 525
 	optimal_temp = 550
 	overheat_temp = 575
@@ -358,7 +358,7 @@
 
 /datum/chemical_reaction/foaming_agent
 	results = list(/datum/reagent/foaming_agent = 1)
-	required_reagents = list(/datum/reagent/lithium = 1, /datum/reagent/hydrogen = 1)
+	required_reagents = list(/datum/reagent/lithium = 1, /datum/reagent/gas/hydrogen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE
 
 /datum/chemical_reaction/smart_foaming_agent
@@ -372,7 +372,7 @@
 
 /datum/chemical_reaction/ammonia
 	results = list(/datum/reagent/ammonia = 3)
-	required_reagents = list(/datum/reagent/hydrogen = 3, /datum/reagent/nitrogen = 1)
+	required_reagents = list(/datum/reagent/gas/hydrogen = 3, /datum/reagent/gas/nitrogen = 1)
 	optimal_ph_min = 1  // Lets increase our range for this basic chem
 	optimal_ph_max = 12
 	H_ion_release = -0.02 //handmade is more neutral
@@ -414,7 +414,7 @@
 
 /datum/chemical_reaction/acetone
 	results = list(/datum/reagent/acetone = 3)
-	required_reagents = list(/datum/reagent/fuel/oil = 1, /datum/reagent/fuel = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/fuel/oil = 1, /datum/reagent/fuel = 1, /datum/reagent/gas/oxygen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_CHEMICAL
 
 /datum/chemical_reaction/carpet
@@ -464,7 +464,7 @@
 
 /datum/chemical_reaction/oil
 	results = list(/datum/reagent/fuel/oil = 3)
-	required_reagents = list(/datum/reagent/fuel = 1, /datum/reagent/carbon = 1, /datum/reagent/hydrogen = 1)
+	required_reagents = list(/datum/reagent/fuel = 1, /datum/reagent/carbon = 1, /datum/reagent/gas/hydrogen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_CHEMICAL
 
 /datum/chemical_reaction/phenol
@@ -535,7 +535,7 @@
 
 //water electrolysis
 /datum/chemical_reaction/electrolysis
-	results = list(/datum/reagent/oxygen = 1.5, /datum/reagent/hydrogen = 3)
+	results = list(/datum/reagent/gas/oxygen = 1.5, /datum/reagent/gas/hydrogen = 3)
 	required_reagents = list(/datum/reagent/consumable/liquidelectricity = 1, /datum/reagent/water = 5)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_CHEMICAL
 
@@ -583,12 +583,12 @@
 
 /datum/chemical_reaction/saltpetre
 	results = list(/datum/reagent/saltpetre = 3)
-	required_reagents = list(/datum/reagent/potassium = 1, /datum/reagent/nitrogen = 1, /datum/reagent/oxygen = 3)
+	required_reagents = list(/datum/reagent/potassium = 1, /datum/reagent/gas/nitrogen = 1, /datum/reagent/gas/oxygen = 3)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_PLANT
 
 /datum/chemical_reaction/lye
 	results = list(/datum/reagent/lye = 3)
-	required_reagents = list(/datum/reagent/sodium = 1, /datum/reagent/hydrogen = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/sodium = 1, /datum/reagent/gas/hydrogen = 1, /datum/reagent/gas/oxygen = 1)
 	required_temp = 10 //So hercuri still shows life.
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_CHEMICAL
 
@@ -672,13 +672,13 @@
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE | REACTION_TAG_PLANT
 
 /datum/chemical_reaction/hydrogen_peroxide
-	results = list(/datum/reagent/hydrogen_peroxide = 3)
-	required_reagents = list(/datum/reagent/water = 1, /datum/reagent/oxygen = 1, /datum/reagent/chlorine = 1)
+	results = list(/datum/reagent/gas/hydrogen_peroxide = 3)
+	required_reagents = list(/datum/reagent/water = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/chlorine = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_CHEMICAL | REACTION_TAG_DAMAGING | REACTION_TAG_BURN
 
 /datum/chemical_reaction/acetone_oxide
 	results = list(/datum/reagent/acetone_oxide = 2)
-	required_reagents = list(/datum/reagent/acetone = 2, /datum/reagent/oxygen = 1, /datum/reagent/hydrogen_peroxide = 1)
+	required_reagents = list(/datum/reagent/acetone = 2, /datum/reagent/gas/oxygen = 1, /datum/reagent/gas/hydrogen_peroxide = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_CHEMICAL | REACTION_TAG_DAMAGING | REACTION_TAG_BURN
 
 /datum/chemical_reaction/pentaerythritol

@@ -303,7 +303,7 @@
 			to_chat(H, "<span class='notice'>You feel a burning sensation in your chest</span>")
 		gas_breathed = breath_gases[/datum/gas/nitryl][MOLES]
 		if (gas_breathed > gas_stimulation_min)
-			H.reagents.add_reagent(/datum/reagent/nitryl,1)
+			H.reagents.add_reagent(/datum/reagent/gas/nitryl,1)
 
 		breath_gases[/datum/gas/nitryl][MOLES]-=gas_breathed
 
@@ -321,7 +321,7 @@
 			H.adjustFireLoss(freon_pp/4)
 		gas_breathed = breath_gases[/datum/gas/freon][MOLES]
 		if (gas_breathed > gas_stimulation_min)
-			H.reagents.add_reagent(/datum/reagent/freon,1)
+			H.reagents.add_reagent(/datum/reagent/gas/freon,1)
 
 		breath_gases[/datum/gas/freon][MOLES]-=gas_breathed
 
@@ -338,8 +338,8 @@
 		if(healium_pp > healium_para_min)
 			H.Unconscious(rand(30, 50))//not in seconds to have a much higher variation
 			if(healium_pp > healium_sleep_min)
-				var/existing = H.reagents.get_reagent_amount(/datum/reagent/healium)
-				H.reagents.add_reagent(/datum/reagent/healium,max(0, 1 - existing))
+				var/existing = H.reagents.get_reagent_amount(/datum/reagent/gas/healium)
+				H.reagents.add_reagent(/datum/reagent/gas/healium,max(0, 1 - existing))
 		gas_breathed = breath_gases[/datum/gas/healium][MOLES]
 		breath_gases[/datum/gas/healium][MOLES]-=gas_breathed
 
@@ -359,23 +359,23 @@
 		var/halon_pp = breath.get_breath_partial_pressure(breath_gases[/datum/gas/halon][MOLES])
 		if(halon_pp > gas_stimulation_min)
 			H.adjustOxyLoss(5)
-			var/existing = H.reagents.get_reagent_amount(/datum/reagent/halon)
-			H.reagents.add_reagent(/datum/reagent/halon,max(0, 1 - existing))
+			var/existing = H.reagents.get_reagent_amount(/datum/reagent/gas/halon)
+			H.reagents.add_reagent(/datum/reagent/gas/halon,max(0, 1 - existing))
 		gas_breathed = breath_gases[/datum/gas/halon][MOLES]
 		breath_gases[/datum/gas/halon][MOLES]-=gas_breathed
 
 	// Stimulum
 		gas_breathed = breath_gases[/datum/gas/stimulum][MOLES]
 		if (gas_breathed > gas_stimulation_min)
-			var/existing = H.reagents.get_reagent_amount(/datum/reagent/stimulum)
-			H.reagents.add_reagent(/datum/reagent/stimulum,max(0, 1 - existing))
+			var/existing = H.reagents.get_reagent_amount(/datum/reagent/gas/stimulum)
+			H.reagents.add_reagent(/datum/reagent/gas/stimulum,max(0, 1 - existing))
 		breath_gases[/datum/gas/stimulum][MOLES]-=gas_breathed
 
 	// Hyper-Nob
 		gas_breathed = breath_gases[/datum/gas/hypernoblium][MOLES]
 		if (gas_breathed > gas_stimulation_min)
-			var/existing = H.reagents.get_reagent_amount(/datum/reagent/hypernoblium)
-			H.reagents.add_reagent(/datum/reagent/hypernoblium,max(0, 1 - existing))
+			var/existing = H.reagents.get_reagent_amount(/datum/reagent/gas/hypernoblium)
+			H.reagents.add_reagent(/datum/reagent/gas/hypernoblium,max(0, 1 - existing))
 		breath_gases[/datum/gas/hypernoblium][MOLES]-=gas_breathed
 
 	// Miasma

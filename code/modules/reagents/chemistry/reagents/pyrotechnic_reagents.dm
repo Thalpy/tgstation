@@ -229,7 +229,7 @@
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED | REAGENT_DEAD_PROCESS
 
 /datum/reagent/cryostylane/burn(datum/reagents/holder)
-	if(holder.has_reagent(/datum/reagent/oxygen))
+	if(holder.has_reagent(/datum/reagent/gas/oxygen))
 		burning_temperature = 0//king chilly
 		return
 	burning_temperature = null
@@ -251,8 +251,8 @@
 
 /datum/reagent/cryostylane/on_mob_life(mob/living/carbon/consumer, delta_time, times_fired)
 	metabolization_rate = 0.25 * REM//faster consumption when alive
-	if(consumer.reagents.has_reagent(/datum/reagent/oxygen))
-		consumer.reagents.remove_reagent(/datum/reagent/oxygen, 0.5 * REM * delta_time)
+	if(consumer.reagents.has_reagent(/datum/reagent/gas/oxygen))
+		consumer.reagents.remove_reagent(/datum/reagent/gas/oxygen, 0.5 * REM * delta_time)
 		consumer.adjust_bodytemperature(-15 * REM * delta_time)
 		if(ishuman(consumer))
 			var/mob/living/carbon/human/humi = consumer
@@ -281,8 +281,8 @@
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 
 /datum/reagent/pyrosium/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
-	if(holder.has_reagent(/datum/reagent/oxygen))
-		holder.remove_reagent(/datum/reagent/oxygen, 0.5 * REM * delta_time)
+	if(holder.has_reagent(/datum/reagent/gas/oxygen))
+		holder.remove_reagent(/datum/reagent/gas/oxygen, 0.5 * REM * delta_time)
 		M.adjust_bodytemperature(15 * REM * delta_time)
 		if(ishuman(M))
 			var/mob/living/carbon/human/humi = M
@@ -290,7 +290,7 @@
 	..()
 
 /datum/reagent/pyrosium/burn(datum/reagents/holder)
-	if(holder.has_reagent(/datum/reagent/oxygen))
+	if(holder.has_reagent(/datum/reagent/gas/oxygen))
 		burning_temperature = 3500
 		return
 	burning_temperature = null

@@ -155,7 +155,7 @@
 	suppressive_reagents = list(
 						/datum/reagent/toxin/bungotoxin = -6,
 						/datum/reagent/mercury = -4,
-						/datum/reagent/oxygen = -3)
+						/datum/reagent/gas/oxygen = -3)
 
 	virus_suspectibility = 2
 	resulting_atoms = list(/mob/living/simple_animal/hostile/carp = 1)
@@ -176,7 +176,7 @@
 
 	suppressive_reagents = list(
 						/datum/reagent/toxin/bungotoxin = -6,
-						/datum/reagent/oxygen = -3)
+						/datum/reagent/gas/oxygen = -3)
 
 	virus_suspectibility = 1
 	resulting_atoms = list(/mob/living/simple_animal/hostile/carp/megacarp = 1)
@@ -344,7 +344,7 @@
 
 	supplementary_reagents = list(
 							/datum/reagent/saltpetre = 5,
-							/datum/reagent/carbondioxide = 2,
+							/datum/reagent/gas/carbon_dioxide = 2,
 							/datum/reagent/consumable/nutriment = 2,
 							/datum/reagent/consumable/space_cola = 2, //A little extra phosphorous
 							/datum/reagent/water/holywater = 2,
@@ -430,7 +430,7 @@
 	supplementary_reagents = list(
 							/datum/reagent/saltpetre = 4,
 							/datum/reagent/ammonia = 3,
-							/datum/reagent/carbondioxide = 3,
+							/datum/reagent/gas/carbon_dioxide = 3,
 							/datum/reagent/medicine/coagulant/banana_peel = 2,
 							/datum/reagent/plantnutriment/robustharvestnutriment = 1)
 
@@ -483,7 +483,7 @@
 							/datum/reagent/drug/happiness = 5,
 							/datum/reagent/toxin/mimesbane = 4,
 							/datum/reagent/consumable/laughter = 3,
-							/datum/reagent/nitrous_oxide = 2)
+							/datum/reagent/gas/nitrous_oxide = 2)
 
 	suppressive_reagents = list(
 						/datum/reagent/consumable/clownstears = -8,

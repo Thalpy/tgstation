@@ -181,7 +181,7 @@
 
 /datum/chemical_reaction/thermite
 	results = list(/datum/reagent/thermite = 3)
-	required_reagents = list(/datum/reagent/aluminium = 1, /datum/reagent/iron = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/aluminium = 1, /datum/reagent/iron = 1, /datum/reagent/gas/oxygen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE | REACTION_TAG_OTHER
 
 /datum/chemical_reaction/emp_pulse
@@ -220,7 +220,7 @@
 
 /datum/chemical_reaction/stabilizing_agent
 	results = list(/datum/reagent/stabilizing_agent = 3)
-	required_reagents = list(/datum/reagent/iron = 1, /datum/reagent/oxygen = 1, /datum/reagent/hydrogen = 1)
+	required_reagents = list(/datum/reagent/iron = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/gas/hydrogen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_EXPLOSIVE | REACTION_TAG_CHEMICAL | REACTION_TAG_PLANT
 
 /datum/chemical_reaction/clf3
@@ -252,12 +252,12 @@
 	..()
 
 /datum/chemical_reaction/reagent_explosion/methsplosion/methboom2
-	required_reagents = list(/datum/reagent/diethylamine = 1, /datum/reagent/iodine = 1, /datum/reagent/phosphorus = 1, /datum/reagent/hydrogen = 1) //diethylamine is often left over from mixing the ephedrine.
+	required_reagents = list(/datum/reagent/diethylamine = 1, /datum/reagent/iodine = 1, /datum/reagent/phosphorus = 1, /datum/reagent/gas/hydrogen = 1) //diethylamine is often left over from mixing the ephedrine.
 	required_temp = 300 //room temperature, chilling it even a little will prevent the explosion
 
 /datum/chemical_reaction/sorium
 	results = list(/datum/reagent/sorium = 4)
-	required_reagents = list(/datum/reagent/mercury = 1, /datum/reagent/oxygen = 1, /datum/reagent/nitrogen = 1, /datum/reagent/carbon = 1)
+	required_reagents = list(/datum/reagent/mercury = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/gas/nitrogen = 1, /datum/reagent/carbon = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_EXPLOSIVE | REACTION_TAG_DANGEROUS
 
 /datum/chemical_reaction/sorium/on_reaction(datum/equilibrium/reaction, datum/reagents/holder, created_volume)
@@ -385,7 +385,7 @@
 
 /datum/chemical_reaction/sonic_powder
 	results = list(/datum/reagent/sonic_powder = 3)
-	required_reagents = list(/datum/reagent/oxygen = 1, /datum/reagent/consumable/space_cola = 1, /datum/reagent/phosphorus = 1)
+	required_reagents = list(/datum/reagent/gas/oxygen = 1, /datum/reagent/consumable/space_cola = 1, /datum/reagent/phosphorus = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_EXPLOSIVE | REACTION_TAG_DANGEROUS
 
 /datum/chemical_reaction/sonic_powder/on_reaction(datum/equilibrium/reaction, datum/reagents/holder, created_volume)
@@ -432,7 +432,7 @@
 
 /datum/chemical_reaction/cryostylane
 	results = list(/datum/reagent/cryostylane = 3)
-	required_reagents = list(/datum/reagent/consumable/ice = 1, /datum/reagent/stable_plasma = 1, /datum/reagent/nitrogen = 1)
+	required_reagents = list(/datum/reagent/consumable/ice = 1, /datum/reagent/stable_plasma = 1, /datum/reagent/gas/nitrogen = 1)
 	required_temp = -200
 	optimal_temp = 300
 	overheat_temp = NO_OVERHEAT //There is an overheat - 50 see reaction_step()
@@ -450,10 +450,10 @@
 
 //Halve beaker temp on reaction
 /datum/chemical_reaction/cryostylane/on_reaction(datum/equilibrium/reaction, datum/reagents/holder, created_volume)
-	var/datum/reagent/oxygen = holder.has_reagent(/datum/reagent/oxygen) //If we have oxygen, bring in the old cooling effect
+	var/datum/reagent/gas/oxygen = holder.has_reagent(/datum/reagent/gas/oxygen) //If we have oxygen, bring in the old cooling effect
 	if(oxygen)
 		holder.chem_temp =  max(holder.chem_temp - (10 * oxygen.volume * 2),0)
-		holder.remove_reagent(/datum/reagent/oxygen, oxygen.volume) // halves the temperature - tried to bring in some of the old effects at least!
+		holder.remove_reagent(/datum/reagent/gas/oxygen, oxygen.volume) // halves the temperature - tried to bring in some of the old effects at least!
 	return
 
 //purity != temp (above 50) - the colder you are the more impure it becomes
@@ -500,7 +500,7 @@
 
 /datum/chemical_reaction/cryostylane_oxygen
 	results = list(/datum/reagent/cryostylane = 1)
-	required_reagents = list(/datum/reagent/cryostylane = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/cryostylane = 1, /datum/reagent/gas/oxygen = 1)
 	mob_react = FALSE
 	is_cold_recipe = TRUE
 	required_temp = 99999
@@ -520,7 +520,7 @@
 
 /datum/chemical_reaction/pyrosium_oxygen
 	results = list(/datum/reagent/pyrosium = 1)
-	required_reagents = list(/datum/reagent/pyrosium = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/pyrosium = 1, /datum/reagent/gas/oxygen = 1)
 	mob_react = FALSE
 	reaction_flags = REACTION_INSTANT
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE
@@ -590,7 +590,7 @@
 	required_reagents = list(/datum/reagent/teslium = 1)
 
 /datum/chemical_reaction/reagent_explosion/nitrous_oxide
-	required_reagents = list(/datum/reagent/nitrous_oxide = 1)
+	required_reagents = list(/datum/reagent/gas/nitrous_oxide = 1)
 	strengthdiv = 9
 	required_temp = 575
 	modifier = 1

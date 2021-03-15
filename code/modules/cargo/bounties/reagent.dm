@@ -224,7 +224,7 @@
 		/datum/reagent/medicine/c2/probital,\
 		/datum/reagent/drug/methamphetamine,\
 		/datum/reagent/drug/crank,\
-		/datum/reagent/nitrous_oxide,\
+		/datum/reagent/gas/nitrous_oxide,\
 		/datum/reagent/barbers_aid,\
 		/datum/reagent/pax,\
 		/datum/reagent/flash_powder,\

@@ -27,7 +27,7 @@
 
 /datum/chemical_reaction/medicine/oculine
 	results = list(/datum/reagent/medicine/oculine = 3)
-	required_reagents = list(/datum/reagent/medicine/c2/multiver = 1, /datum/reagent/carbon = 1, /datum/reagent/hydrogen = 1)
+	required_reagents = list(/datum/reagent/medicine/c2/multiver = 1, /datum/reagent/carbon = 1, /datum/reagent/gas/hydrogen = 1)
 	mix_message = "The mixture bubbles noticeably and becomes a dark grey color!"
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_ORGAN
 
@@ -93,12 +93,12 @@
 
 /datum/chemical_reaction/medicine/sal_acid
 	results = list(/datum/reagent/medicine/sal_acid = 5)
-	required_reagents = list(/datum/reagent/sodium = 1, /datum/reagent/phenol = 1, /datum/reagent/carbon = 1, /datum/reagent/oxygen = 1, /datum/reagent/toxin/acid = 1)
+	required_reagents = list(/datum/reagent/sodium = 1, /datum/reagent/phenol = 1, /datum/reagent/carbon = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/toxin/acid = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_BRUTE
 
 /datum/chemical_reaction/medicine/oxandrolone
 	results = list(/datum/reagent/medicine/oxandrolone = 6)
-	required_reagents = list(/datum/reagent/carbon = 3, /datum/reagent/phenol = 1, /datum/reagent/hydrogen = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/carbon = 3, /datum/reagent/phenol = 1, /datum/reagent/gas/hydrogen = 1, /datum/reagent/gas/oxygen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_BURN
 
 /datum/chemical_reaction/medicine/salbutamol
@@ -108,7 +108,7 @@
 
 /datum/chemical_reaction/medicine/ephedrine
 	results = list(/datum/reagent/medicine/ephedrine = 4)
-	required_reagents = list(/datum/reagent/consumable/sugar = 1, /datum/reagent/fuel/oil = 1, /datum/reagent/hydrogen = 1, /datum/reagent/diethylamine = 1)
+	required_reagents = list(/datum/reagent/consumable/sugar = 1, /datum/reagent/fuel/oil = 1, /datum/reagent/gas/hydrogen = 1, /datum/reagent/diethylamine = 1)
 	mix_message = "The solution fizzes and gives off toxic fumes."
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_OTHER
 
@@ -125,7 +125,7 @@
 
 /datum/chemical_reaction/medicine/epinephrine
 	results = list(/datum/reagent/medicine/epinephrine = 6)
-	required_reagents = list(/datum/reagent/phenol = 1, /datum/reagent/acetone = 1, /datum/reagent/diethylamine = 1, /datum/reagent/oxygen = 1, /datum/reagent/chlorine = 1, /datum/reagent/hydrogen = 1)
+	required_reagents = list(/datum/reagent/phenol = 1, /datum/reagent/acetone = 1, /datum/reagent/diethylamine = 1, /datum/reagent/gas/oxygen = 1, /datum/reagent/chlorine = 1, /datum/reagent/gas/hydrogen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_BRUTE |REACTION_TAG_BURN | REACTION_TAG_TOXIN | REACTION_TAG_OXY | REACTION_TAG_OTHER
 
 /datum/chemical_reaction/medicine/strange_reagent
@@ -140,13 +140,13 @@
 
 /datum/chemical_reaction/medicine/mannitol
 	results = list(/datum/reagent/medicine/mannitol = 3)
-	required_reagents = list(/datum/reagent/consumable/sugar = 1, /datum/reagent/hydrogen = 1, /datum/reagent/water = 1)
+	required_reagents = list(/datum/reagent/consumable/sugar = 1, /datum/reagent/gas/hydrogen = 1, /datum/reagent/water = 1)
 	mix_message = "The solution slightly bubbles, becoming thicker."
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_ORGAN
 
 /datum/chemical_reaction/medicine/neurine
 	results = list(/datum/reagent/medicine/neurine = 3)
-	required_reagents = list(/datum/reagent/medicine/mannitol = 1, /datum/reagent/acetone = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/medicine/mannitol = 1, /datum/reagent/acetone = 1, /datum/reagent/gas/oxygen = 1)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_ORGAN
 
 /datum/chemical_reaction/medicine/mutadone
@@ -192,7 +192,7 @@
 
 /datum/chemical_reaction/medicine/morphine
 	results = list(/datum/reagent/medicine/morphine = 2)
-	required_reagents = list(/datum/reagent/carbon = 2, /datum/reagent/hydrogen = 2, /datum/reagent/consumable/ethanol = 1, /datum/reagent/oxygen = 1)
+	required_reagents = list(/datum/reagent/carbon = 2, /datum/reagent/gas/hydrogen = 2, /datum/reagent/consumable/ethanol = 1, /datum/reagent/gas/oxygen = 1)
 	required_temp = 480
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_HEALING | REACTION_TAG_OTHER | REACTION_TAG_DRUG
 

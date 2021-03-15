@@ -19,7 +19,7 @@
 
 /datum/chemical_reaction/methamphetamine
 	results = list(/datum/reagent/drug/methamphetamine = 4)
-	required_reagents = list(/datum/reagent/medicine/ephedrine = 1, /datum/reagent/iodine = 1, /datum/reagent/phosphorus = 1, /datum/reagent/hydrogen = 1)
+	required_reagents = list(/datum/reagent/medicine/ephedrine = 1, /datum/reagent/iodine = 1, /datum/reagent/phosphorus = 1, /datum/reagent/gas/hydrogen = 1)
 	required_temp = 372
 	optimal_temp = 376//Wow this is tight
 	overheat_temp = 380
@@ -96,7 +96,7 @@
 
 /datum/chemical_reaction/happiness
 	results = list(/datum/reagent/drug/happiness = 4)
-	required_reagents = list(/datum/reagent/nitrous_oxide = 2, /datum/reagent/medicine/epinephrine = 1, /datum/reagent/consumable/ethanol = 1)
+	required_reagents = list(/datum/reagent/gas/nitrous_oxide = 2, /datum/reagent/medicine/epinephrine = 1, /datum/reagent/consumable/ethanol = 1)
 	required_catalysts = list(/datum/reagent/toxin/plasma = 5)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DRUG | REACTION_TAG_ORGAN | REACTION_TAG_DAMAGING
 
@@ -118,7 +118,7 @@
 /datum/chemical_reaction/maint_sludge
 	results = list(/datum/reagent/drug/maint/sludge = 1)
 	required_reagents = list(/datum/reagent/drug/maint/tar = 3 , /datum/reagent/toxin/acid/fluacid = 1)
-	required_catalysts = list(/datum/reagent/hydrogen_peroxide = 5)
+	required_catalysts = list(/datum/reagent/gas/hydrogen_peroxide = 5)
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_DRUG | REACTION_TAG_TOXIN | REACTION_TAG_DAMAGING
 
 /datum/chemical_reaction/maint_powder

@@ -707,7 +707,7 @@
 /obj/item/food/canned
 	name = "Canned Air"
 	desc = "If you ever wondered where air came from..."
-	food_reagents = list(/datum/reagent/oxygen = 6, /datum/reagent/nitrogen = 24)
+	food_reagents = list(/datum/reagent/gas/oxygen = 6, /datum/reagent/gas/nitrogen = 24)
 	icon_state = "peachcan"
 	food_flags = FOOD_IN_CONTAINER
 	w_class = WEIGHT_CLASS_NORMAL

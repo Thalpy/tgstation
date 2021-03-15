@@ -316,7 +316,7 @@
 	taste_description = "emptyiness"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 
-/datum/reagent/hydrogen_peroxide
+/datum/reagent/gas/hydrogen_peroxide
 	name = "Hydrogen peroxide"
 	description = "An ubiquitous chemical substance that is composed of hydrogen and oxygen and oxygen." //intended intended
 	color = "#AAAAAA77" // rgb: 170, 170, 170, 77 (alpha)
@@ -334,7 +334,7 @@
  * Water reaction to turf
  */
 
-/datum/reagent/hydrogen_peroxide/expose_turf(turf/open/exposed_turf, reac_volume)
+/datum/reagent/gas/hydrogen_peroxide/expose_turf(turf/open/exposed_turf, reac_volume)
 	. = ..()
 	if(!istype(exposed_turf))
 		return
@@ -344,7 +344,7 @@
  * Water reaction to a mob
  */
 
-/datum/reagent/hydrogen_peroxide/expose_mob(mob/living/exposed_mob, methods=TOUCH, reac_volume)//Splashing people with h2o2 can burn them !
+/datum/reagent/gas/hydrogen_peroxide/expose_mob(mob/living/exposed_mob, methods=TOUCH, reac_volume)//Splashing people with h2o2 can burn them !
 	. = ..()
 	if(methods & TOUCH)
 		exposed_mob.adjustFireLoss(2, 0) // burns

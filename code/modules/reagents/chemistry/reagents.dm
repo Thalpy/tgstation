@@ -94,7 +94,7 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	///Thermodynamic vars
 	///Temperature at which the reagent catches fire
 
-	//TODO: x = (y-c)/m for minimum reagent pressure ignite temperature
+	//FERMI_TODO: x = (y-c)/m for minimum reagent pressure ignite temperature
 
 	var/ignite_temperature = null
 	///What GASSES are produced from burning - can be a gas OR reagent with asssociate volume
@@ -118,16 +118,19 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	holder = null
 	phase_states = null //Do not destroy reference - it's a lookup table
 
-///A test called on this reagent from the unit testing subtype
+///A test called on this reagent from the unit testing methods
+///Use this to set up tests specific to a reagent subtype
 /datum/reagent/proc/unit_test()
 	. = list()
-	if(!reagent.mass)
-		. += "Generic failure: [reagent.type] is missing a mass.")
+	if(name == "Reagent")
+		. += "Generic failure: [reagent.type] has no name, if this is not a true reagent please add it to the GLOB.fake_reagent_blacklist."
+	if(!mass)
+		. += "Generic failure: [reagent.type] is missing a mass."
 	var/pass = FALSE
 	for(var/datum/reagent_phase/phase in reagent.phase_states)
 		pass += phase.determine_phase_percent(src, 300, 1)
 	if(!pass)
-		. += "Generic failure: [reagent.type] failed phase testing - no valid phase for 300K at 101kPa!")
+		. += "Generic failure: [reagent.type] failed phase testing - no valid phase for 300K at 101kPa!"
 	return .
 
 /// Applies this reagent to an [/atom]

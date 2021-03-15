@@ -459,7 +459,7 @@
 	base_icon_state = "glowstick"
 	inhand_icon_state = "glowstick"
 	worn_icon_state = "lightstick"
-	grind_results = list(/datum/reagent/phenol = 15, /datum/reagent/hydrogen = 10, /datum/reagent/oxygen = 5) //Meth-in-a-stick
+	grind_results = list(/datum/reagent/phenol = 15, /datum/reagent/gas/hydrogen = 10, /datum/reagent/gas/oxygen = 5) //Meth-in-a-stick
 	/// How many seconds of fuel we have left
 	var/fuel = 0
 
