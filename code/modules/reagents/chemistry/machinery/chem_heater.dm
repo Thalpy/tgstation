@@ -239,12 +239,16 @@
 	data["currentpH"] = beaker ? round(beaker.reagents.ph, 0.01)  : null
 	var/upgrade_level = heater_coefficient*10
 	data["upgradeLevel"] = upgrade_level
+	data["pressure"] = beaker?.reagents.pressure
 
 	var/list/beaker_contents = list()
+	var/list/reagent_pressure_profile = list()
 	for(var/r in beaker?.reagents.reagent_list)
 		var/datum/reagent/reagent = r
+		for(var/datum/reagent_phase/phase in reagent.phase_states)
+			reagent_pressure_profile += list(list("name" =  phase.phase, "ratio" = reagent.phase_states[phase], "color" = phase.color))
 		beaker_contents.len++
-		beaker_contents[length(beaker_contents)] = list("name" = reagent.name, "volume" = round(reagent.volume, 0.01))
+		beaker_contents[length(beaker_contents)] = list("name" = reagent.name, "volume" = round(reagent.volume, 0.01), "pressureProfile" = reagent_pressure_profile)
 	data["beakerContents"] = beaker_contents
 
 	var/list/active_reactions = list()

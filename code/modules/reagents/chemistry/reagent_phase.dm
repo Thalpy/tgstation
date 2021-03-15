@@ -12,12 +12,14 @@
 	var/phase
 	///The density of this phase
 	var/density
-	///How fast this phase can transition (u/s) (into and from) If there's bugs it's likely this
-	var/transition_speed = 5
+	///How fast this phase can transition (ratio/s) (into and from) If there's bugs it's likely this
+	var/transition_speed = 0.02
 	///The speed modifier of this phase
 	var/reaction_speed_modifier = 1
 	///The purity modifier of this phase
 	var/purity_modifier = 1
+	///The UI color of this phase
+	var/color
 
 ///called for each update that this phase has a volume presence
 /datum/reagent_phase/proc/tick(delta_time)
@@ -36,6 +38,7 @@
 	phase = GAS
 	density = 0.5
 	reaction_speed_modifier = 0.2
+	color = "#7ef0ff"
 
 /datum/reagent_phase/gas/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	reaction_speed_modifier = clamp(pressure/100 * 0.2, 0.1, 0.8)
@@ -83,6 +86,7 @@
 	constant = 0.03
 	range = 25
 	density = 1
+	color = "#7eff89"
 
 ///Default solid
 /datum/reagent_phase/linear/solid
@@ -92,6 +96,7 @@
 	range = 50
 	reaction_speed_modifier = 0.35
 	density = 1.5
+	color = "#ddff7e"
 
 ///solid to powder (powder cannot become solid without turning into a liquid/gas first)
 /datum/reagent_phase/linear/solid/proc/grind(datum/reagent/reagent, amount)
@@ -106,6 +111,7 @@
 	phase = POWDER
 	reaction_speed_modifier = 0.9
 	density = 1.25
+	color = "#f3b887"
 
 /datum/reagent_phase/linear/solid/powder/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	if(reagent.phase_states[src] == 0) //Save some calculations - we can never generate powder this way
@@ -125,6 +131,7 @@
 	density = 0.2
 	///The chemical reaction that this reagent is MADE from - i.e. we're going backwards
 	var/datum/chemical_reaction/reverse_reaction
+	color = "#dd8bfd"
 
 /* FERMI_TODO
 /datum/reagent_phase/plasma/tick(datum/reagent/reagent, delta_time)

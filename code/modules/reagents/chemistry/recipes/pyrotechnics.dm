@@ -75,7 +75,7 @@
 	var/turf/T = get_turf(holder.my_atom)
 	for(var/turf/turf in range(fire_range,T))
 		new /obj/effect/hotspot(turf)
-	holder.chem_temp = 500
+	holder.set_temperature(500)
 	..()
 
 /datum/chemical_reaction/reagent_explosion/rdx_explosion3
@@ -89,7 +89,7 @@
 	var/turf/T = get_turf(holder.my_atom)
 	for(var/turf/turf in range(fire_range,T))
 		new /obj/effect/hotspot(turf)
-	holder.chem_temp = 750
+	holder.set_temperature(750)
 	..()
 
 /datum/chemical_reaction/reagent_explosion/tatp
@@ -234,7 +234,7 @@
 	var/turf/T = get_turf(holder.my_atom)
 	for(var/turf/turf in range(1,T))
 		new /obj/effect/hotspot(turf)
-	holder.chem_temp = 1000 // hot as shit
+	holder.set_temperature(1000) // hot as shit
 
 /datum/chemical_reaction/reagent_explosion/methsplosion
 	required_temp = 380 //slightly above the meth mix time.
@@ -248,7 +248,7 @@
 	var/turf/T = get_turf(holder.my_atom)
 	for(var/turf/turf in range(1,T))
 		new /obj/effect/hotspot(turf)
-	holder.chem_temp = 1000 // hot as shit
+	holder.set_temperature(1000) // hot as shit
 	..()
 
 /datum/chemical_reaction/reagent_explosion/methsplosion/methboom2
@@ -452,7 +452,7 @@
 /datum/chemical_reaction/cryostylane/on_reaction(datum/equilibrium/reaction, datum/reagents/holder, created_volume)
 	var/datum/reagent/gas/oxygen = holder.has_reagent(/datum/reagent/gas/oxygen) //If we have oxygen, bring in the old cooling effect
 	if(oxygen)
-		holder.chem_temp =  max(holder.chem_temp - (10 * oxygen.volume * 2),0)
+		holder.set_temperature( max(holder.chem_temp - (10 * oxygen.volume * 2),0))
 		holder.remove_reagent(/datum/reagent/gas/oxygen, oxygen.volume) // halves the temperature - tried to bring in some of the old effects at least!
 	return
 
@@ -539,7 +539,7 @@
 	reaction_tags = REACTION_TAG_EASY | REACTION_TAG_UNIQUE
 
 /datum/chemical_reaction/pyrosium/on_reaction(datum/equilibrium/reaction, datum/reagents/holder, created_volume)
-	holder.chem_temp = 20 // also cools the fuck down
+	holder.set_temperature(20) // also cools the fuck down
 	return
 
 /datum/chemical_reaction/teslium

@@ -73,7 +73,7 @@
 	create_reagents(100, NO_REACT | OPENCONTAINER)
 	for(var/reagent in icecream_vat_reagents)
 		reagents.add_reagent(reagent, icecream_vat_reagents[reagent], reagtemp = T0C)
-	reagents.chem_temp = T0C //So ice doesn't melt
+	reagents.set_temperature(T0C) //So ice doesn't melt
 
 /obj/machinery/icecream_vat/ui_interact(mob/user)
 	. = ..()

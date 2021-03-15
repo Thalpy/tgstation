@@ -211,7 +211,7 @@ export const ChemDispenser = (props, context) => {
                       {phase.name}:
                       <AnimatedNumber
                         initial={0}
-                        value={phase.ratio*100} />
+                        value={(phase.ratio*100)+"%"} />
                     </Box>
                   ))}
                 </>
@@ -225,8 +225,8 @@ export const ChemDispenser = (props, context) => {
                   </Box>
                   <Box>
                     Pressure:
-                      <AnimatedNumber
-                        value={data.pressure+"kPa"} />
+                    <AnimatedNumber
+                      value={data.pressure+" kPa"} />
                   </Box>
                 </>)
               )}

@@ -109,7 +109,15 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 /datum/reagent/New()
 	SHOULD_CALL_PARENT(TRUE)
 	. = ..()
-
+	if(length(GLOB.reagent_phase_list)) //Convert to object reference
+		var/object_list = list()
+		for(var/item in phase_states)
+			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
+			object_list[phase_lookup] = phase_states[item] ///OBJECT = percentage
+		phase_states = object_list
+	//Debug
+	if(!mass)
+		mass = rand(20, 800)
 	if(material)
 		material = GET_MATERIAL_REF(material)
 
@@ -297,7 +305,7 @@ Primarily used in reagents/reaction_agents
 /datum/reagent/proc/adjust_phase_targets(delta_time)
 	var/sum_ratio //What is our total target to adjust ratios to?
 	var/list/target_list = list()
-	for(var/datum/reagent_phase/phase in phase_states) //We prioritise the first phases in the list
+	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
 		if(sum_ratio >= 1)
 			target_list[phase] = 0
 			continue
@@ -306,21 +314,30 @@ Primarily used in reagents/reaction_agents
 			stack_trace("Ratio is giving a funky number: [ratio] for reagent: [type]")
 		if(1 < sum_ratio + ratio )
 			ratio = 1 - sum_ratio
-		target_list[phase] = ratio * volume
+		target_list[phase] = ratio
 		sum_ratio += ratio
 	//If we're not at our target yet - request an update on the next tick
 	var/needs_update = FALSE
-	for(var/datum/reagent_phase/phase in target_list) //target list is the target volume assoc list
+	for(var/datum/reagent_phase/phase in target_list) //target list is the target ratio assoc list
 		if(target_list[phase] == phase_states[phase])//No change
 			continue
-		if(target_list[phase] > phase_states[phase]) //Positive change
-			var/amount = clamp(phase_states[phase] + (phase.transition_speed * delta_time), 0, target_list[phase])
+		var/transition_cap = (phase.transition_speed * delta_time)
+		var/current_phase_vol = phase_states[phase] * volume
+		var/target_phase_vol = target_list[phase] * volume
+		var/delta_vol = target_phase_vol - current_phase_vol
+		//if(prob(5))
+		//	message_admins("phase:[phase.phase] has a current ratio of: [phase_states[phase]*100]% [current_phase_vol]u with a target of [target_list[phase]*100]% [target_phase_vol]u totalling a delta of [delta_vol] capped at [transition_cap]")
+
+		if(target_phase_vol > current_phase_vol) //Positive change
+			var/amount = min(delta_vol, transition_cap)
 			phase.transition_to(src, amount)
-			phase_states[phase] += amount
-		if(target_list[phase] < phase_states[phase]) //Negative change
-			var/amount = clamp(phase_states[phase] - (phase.transition_speed * delta_time), target_list[phase], 0)
+			phase_states[phase] = clamp(phase_states[phase] + (amount / volume), 0, 1)
+
+		if(target_phase_vol < current_phase_vol) //Negative change
+			var/amount = max(delta_vol, transition_cap)
+			amount = clamp(phase_states[phase] - amount, 0, 1)
 			phase.transition_from(src, amount)
-			phase_states[phase] -= amount
+			phase_states[phase] = clamp(phase_states[phase] - (amount / volume), 0, 1)
 
 		if(target_list[phase] != phase_states[phase])//We updated - but we're not at our target yet
 			needs_update = TRUE
@@ -358,8 +375,8 @@ Primarily used in reagents/reaction_agents
 	for(var/phase_state in phase_states)
 		sum_ratio += phase_states[phase_state]
 	if(sum_ratio != 1) //This can happen from set_phase_percent()
-		if(debug)
-			stack_trace("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
+		//if(debug)
+		//	stack_trace("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
 		for(var/datum/reagent_phase/phase_state in phase_states)
 			phase_states[phase_state] /= sum_ratio
 

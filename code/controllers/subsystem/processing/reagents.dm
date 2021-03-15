@@ -46,7 +46,7 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 			processing -= thing
 		else if(thing.process(delta_realtime) == PROCESS_KILL) //we are realtime
 			// fully stop so that a future START_PROCESSING will work
-			STOP_PROCESSING(src, thing)
+			stop_processing(thing, REAGENTS_PROCESS_TYPE_REACTION)
 		if (MC_TICK_CHECK)
 			return
 

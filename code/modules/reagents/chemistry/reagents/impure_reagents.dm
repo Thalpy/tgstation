@@ -13,6 +13,7 @@
 	inverse_chem = null
 	failed_chem = null
 	metabolization_rate = 0.1 * REM //default impurity is 0.75, so we get 25% converted. Default metabolisation rate is 0.4, so we're 4 times slower.
+	mass = 192
 	var/liver_damage = 0.5
 
 /datum/reagent/impurity/on_mob_life(mob/living/carbon/C, delta_time, times_fired)
@@ -33,6 +34,7 @@
 	impure_chem = null
 	inverse_chem = null
 	failed_chem = null
+	mass = 216
 	///how much this reagent does for tox damage too
 	var/tox_damage = 1
 

@@ -899,8 +899,8 @@ x
 		return FALSE //Yup, no reactions here. No siree.
 
 	if(is_reacting)//Prevent wasteful calculations
-		if(datum_flags != DF_ISPROCESSING)//If we're reacting - but not processing (i.e. we've transfered)
-			START_PROCESSING(SSreagents, src)
+		if(!(flags & SUBSYSTEM_PROCESS_REACTION) || datum_flags != DF_ISPROCESSING)//If we're reacting - but not processing (i.e. we've transfered)
+			SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_REACTION)
 		if(!(has_changed_state()))
 			return FALSE
 
@@ -1003,12 +1003,14 @@ x
 
 	if(LAZYLEN(reaction_list))
 		is_reacting = TRUE //We've entered the reaction phase - this is set here so any reagent handling called in on_reaction() doesn't cause infinite loops
-		START_PROCESSING(SSreagents, src) //see process() to see how reactions are handled
+		SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_REACTION)
 	else
 		is_reacting = FALSE
 
 	if(.)
 		SEND_SIGNAL(src, COMSIG_REAGENTS_REACTED, .)
+	else
+		check_reagent_phase()
 
 /*
 * Main Reaction loop handler, Do not call this directly
@@ -1083,7 +1085,7 @@ x
 * Also resets reaction variables to be null/empty/FALSE so that it can restart correctly in the future
 */
 /datum/reagents/proc/finish_reacting()
-	STOP_PROCESSING(SSreagents, src)
+	SSreagents.stop_processing(src, REAGENTS_PROCESS_TYPE_REACTION)
 	is_reacting = FALSE
 	//Cap off values
 	for(var/datum/reagent/reagent as anything in reagent_list)
@@ -1258,10 +1260,15 @@ x
 	recalculate_sum_ph()
 	check_reagent_phase()
 
-/* 		~~~			Phase/pressure methods			~~~		 */
+/* 			~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~				 /
+ *			~~~		Phase/pressure methods		~~~			 	 /
+ * 			~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~				*/
 
 ///Call this to check the phase states of all of the reagents within the holder, it will start processing them if true.
 /datum/reagents/proc/check_reagent_phase()
+	if(!reagent_list)
+		return
+	update_pressure()
 	if(flags & SUBSYSTEM_PROCESS_PHASE)
 		if(!(datum_flags & DF_ISPROCESSING))
 			stack_trace("Desync error: holder of [my_atom] has the processing flags SUBSYSTEM_PROCESS_PHASE while it's DF_ISPROCESSING flag is incorrectly set!")
@@ -1286,6 +1293,8 @@ x
 
 ///Updates the pressure var of the holder - will consider the local area's pressure if it's an unsealed holder
 /datum/reagents/proc/update_pressure()
+	if(!length(reagent_list))
+		return
 	var/sum_pressure = 0
 	var/active_states
 	var/sum_moles
@@ -1539,6 +1548,7 @@ x
 
 	. = chem_temp
 	chem_temp = clamp(_temperature, 0, CHEMICAL_MAXIMUM_TEMPERATURE)
+	check_reagent_phase()
 	SEND_SIGNAL(src, COMSIG_REAGENTS_TEMP_CHANGE, _temperature, .)
 
 /*
