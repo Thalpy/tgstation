@@ -201,10 +201,10 @@
 
 	var/beakerContents[0]
 	var/beakerCurrentVolume = 0
-	var/reagent_pressure_profile = list("Solid" = 0, "Liquid" = 0, "Gas" = 0)
+	var/reagent_pressure_profile = list(SOLID = 0, LIQUID = 0, GAS = 0)
 	if(beaker && beaker.reagents && beaker.reagents.reagent_list.len)
 		for(var/datum/reagent/R in beaker.reagents.reagent_list)
-			for(var/datum/reagent_phase/phase in reagent.phase_states)
+			for(var/datum/reagent_phase/phase in R.phase_states)
 				reagent_pressure_profile["[phase.phase]"] = R.phase_states[phase]
 			beakerContents.Add(list(list("name" = R.name, "volume" = round(R.volume, 0.01), "pH" = R.ph, "purity" = R.purity), "pressureProfile" = reagent_pressure_profile)) // list in a list because Byond merges the first list...
 			beakerCurrentVolume += R.volume

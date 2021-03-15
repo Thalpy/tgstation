@@ -123,14 +123,14 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 /datum/reagent/proc/unit_test()
 	. = list()
 	if(name == "Reagent")
-		. += "Generic failure: [reagent.type] has no name, if this is not a true reagent please add it to the GLOB.fake_reagent_blacklist."
+		. += "Generic failure: [type] has no name, if this is not a true reagent please add it to the GLOB.fake_reagent_blacklist."
 	if(!mass)
-		. += "Generic failure: [reagent.type] is missing a mass."
+		. += "Generic failure: [type] is missing a mass."
 	var/pass = FALSE
-	for(var/datum/reagent_phase/phase in reagent.phase_states)
+	for(var/datum/reagent_phase/phase in phase_states)
 		pass += phase.determine_phase_percent(src, 300, 1)
 	if(!pass)
-		. += "Generic failure: [reagent.type] failed phase testing - no valid phase for 300K at 101kPa!"
+		. += "Generic failure: [type] failed phase testing - no valid phase for 300K at 101kPa!"
 	return .
 
 /// Applies this reagent to an [/atom]
@@ -302,11 +302,11 @@ Primarily used in reagents/reaction_agents
 			target_list[phase] = 0
 			continue
 		var/ratio = phase.determine_phase_percent(src, holder.chem_temp, holder.pressure)
-		if(ration < 0 || ratio > 1)
-			stack_trace("Ratio is giving a funky number: [ratio] for reagent: [reagent]")
+		if(ratio < 0 || ratio > 1)
+			stack_trace("Ratio is giving a funky number: [ratio] for reagent: [type]")
 		if(1 < sum_ratio + ratio )
 			ratio = 1 - sum_ratio
-		target_list[phase] = ratio * reagent.volume
+		target_list[phase] = ratio * volume
 		sum_ratio += ratio
 	//If we're not at our target yet - request an update on the next tick
 	var/needs_update = FALSE
@@ -328,11 +328,18 @@ Primarily used in reagents/reaction_agents
 	check_phase_ratio(debug = TRUE)
 	return needs_update
 
+///Gets the phase datum from a state
+/datum/reagent/proc/get_phase(state)
+	for(var/datum/reagent_phase/phase_state in phase_states)
+		if(state == phase_state.phase)
+			return phase_state
+	return FALSE
+
 ///Gets the current ratio of the specified phase (between 0 and 1)
 ///Arguments: phase - the define state (i.e. GAS, LIQUID, SOLID)
-/datum/reagent/proc/get_phase_ratio(phase)
+/datum/reagent/proc/get_phase_ratio(state)
 	for(var/datum/reagent_phase/phase_state in phase_states)
-		if(phase == phase_state.phase)
+		if(state == phase_state.phase)
 			return phase_states[phase_state]
 	return 0
 
@@ -352,7 +359,7 @@ Primarily used in reagents/reaction_agents
 		sum_ratio += phase_states[phase_state]
 	if(sum_ratio != 1) //This can happen from set_phase_percent()
 		if(debug)
-			stack_trace("[reagent] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
+			stack_trace("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
 		for(var/datum/reagent_phase/phase_state in phase_states)
 			phase_states[phase_state] /= sum_ratio
 
@@ -365,7 +372,7 @@ Primarily used in reagents/reaction_agents
 		return TRUE
 	if(!(holder.flags & SEALED) && get_phase_ratio(GAS)) //gases diffuse out when unsealed
 		return TRUE
-	adjust_phase_targets
+	adjust_phase_targets(1)
 	return FALSE
 
 ///Checks the current phases to see if the reaction speed/reaction purity is affected by phases

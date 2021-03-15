@@ -1,5 +1,7 @@
 ///If we're not defined then our mass at roundstart defines what phase we are
 #define UNDEFINED "Undefined"
+///A solid ground into a powder
+#define POWDER "Powder"
 ///Solid slows reaction speeds but works as expected
 #define SOLID "Solid"
 ///Standard - old reaction method

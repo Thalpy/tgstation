@@ -53,7 +53,7 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 	//This might need reviewing - let me know if this is bad
 	for(var/datum/reagents/thing as anything in phase_processing)
 		if(QDELETED(thing))
-			stack_trace("Found qdeleted thing in [type], in the current_run list.")
+			stack_trace("Found qdeleted thing in [type], in the phase_processing list.")
 			phase_processing -= thing
 		else if(thing.process_phase(delta_realtime) == PROCESS_KILL) //we are realtime
 			stop_processing(thing, SUBSYSTEM_PROCESS_PHASE)

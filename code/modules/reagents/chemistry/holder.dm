@@ -155,7 +155,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		var/object_list = list()
 		for(var/item in reagent.phase_states)
 			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
-			object_list[phase_lookup] = active_phases[item] ///OBJECT = percentage
+			object_list[phase_lookup] = reagent.phase_states[item] ///OBJECT = percentage
 		reagent.phase_states = object_list
 
 
@@ -345,9 +345,6 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 
 	if(amount < 0)
 		return FALSE
-
-	if()
-
 
 	var/list/cached_reagents = reagent_list
 	for(var/datum/reagent/cached_reagent as anything in cached_reagents)
@@ -1261,7 +1258,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 
 ///Call this to check the phase states of all of the reagents within the holder, it will start processing them if true.
 /datum/reagents/proc/check_reagent_phase()
-	if(holder.flags & SUBSYSTEM_PROCESS_PHASE)
+	if(flags & SUBSYSTEM_PROCESS_PHASE)
 		if(!(datum_flags & DF_ISPROCESSING))
 			stack_trace("Desync error: holder of [my_atom] has the processing flags SUBSYSTEM_PROCESS_PHASE while it's DF_ISPROCESSING flag is incorrectly set!")
 		return TRUE
@@ -1286,7 +1283,6 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 ///Updates the pressure var of the holder - will consider the local area's pressure if it's an unsealed holder
 /datum/reagents/proc/update_pressure()
 	var/sum_pressure = 0
-	var/sum_volume = 0
 	var/active_states
 	var/sum_moles
 	//Get the pressure of the reagents in the holder
@@ -1304,9 +1300,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		sum_pressure += (sum_moles * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume * active_states)
 	sum_pressure /= reagent_list.len
 	//If we're in a holder that isn't sealed
-	if(flags & SEALED) //FERMI_TODO
-		sum_pressure = ((sum_pressure * total_volume) + (sealed_air_mix.get_pressure() * (maximum_volume - total_volume))) / total_volume
-	else
+	if(!(flags & SEALED)) //FERMI_TODO
 		var/datum/gas_mixture/local_gas = my_atom.return_air()
 		if(local_gas)//if we're not in nullspace
 			var/local_pressure = local_gas.return_pressure()
@@ -1327,8 +1321,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		return FALSE
 	var/datum/gas_mixture/gas_mix = my_atom.return_air()
 	var/total_moles = gas_mix.total_moles()
-	for(var/gas_id as anything in gas_mix)
-		add_reagent(GLOB.gas_to_reagent[gas_id], (gas_mix[gas_id][MOLES] / total_moles()) * empty_volume, gas_mix.temperature)
+	for(var/gas_id as anything in gas_mix.gases)
+		add_reagent(GLOB.gas_to_reagent[gas_id], (gas_mix[gas_id][MOLES] / total_moles) * empty_volume, gas_mix.temperature)
 	gas_mix.remove(empty_volume)
 	flags |= SEALED
 
