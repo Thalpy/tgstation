@@ -242,9 +242,9 @@
 	data["pressure"] = beaker?.reagents.pressure
 
 	var/list/beaker_contents = list()
-	var/list/reagent_pressure_profile = list()
 	for(var/r in beaker?.reagents.reagent_list)
 		var/datum/reagent/reagent = r
+		var/list/reagent_pressure_profile = list()
 		for(var/datum/reagent_phase/phase in reagent.phase_states)
 			reagent_pressure_profile += list(list("name" =  phase.phase, "ratio" = reagent.phase_states[phase], "color" = phase.color))
 		beaker_contents.len++

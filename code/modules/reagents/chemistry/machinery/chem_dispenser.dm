@@ -201,8 +201,8 @@
 
 	var/beakerContents[0]
 	var/beakerCurrentVolume = 0
-	var/reagent_pressure_profile = list()
 	if(beaker && beaker.reagents && beaker.reagents.reagent_list.len)
+		var/reagent_pressure_profile = list()
 		for(var/datum/reagent/R in beaker.reagents.reagent_list)
 			for(var/datum/reagent_phase/phase in R.phase_states)
 				reagent_pressure_profile += list(list("name" =  phase.phase, "ratio" = R.phase_states[phase], "color" = phase.color))
