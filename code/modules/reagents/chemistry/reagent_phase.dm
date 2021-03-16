@@ -13,7 +13,7 @@
 	///The density of this phase
 	var/density
 	///How fast this phase can transition (ratio/s) (into and from) If there's bugs it's likely this
-	var/transition_speed = 0.02
+	var/transition_speed = 0.05
 	///The speed modifier of this phase
 	var/reaction_speed_modifier = 1
 	///The purity modifier of this phase

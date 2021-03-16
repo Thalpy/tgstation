@@ -26,23 +26,33 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 	var/delta_realtime = (world.time - previous_world_time)/10 //normalise to s from ds
 	previous_world_time = world.time
 
-	while(current_run.len) //REACTIONS
-		var/datum/reagents/holder = current_run[current_run.len]
+	var/datum/reagents/holder
+	while(current_run.len) //PHASE
+		var/datum/reagent/reagent = current_run[current_run.len]
+		if(QDELETED(reagent))
+			stack_trace("Found qdeleted reagent in [type]: [holder.my_atom] | [reagent], in the current_run list.")
+			processing -= reagent
+		if(!reagent.holder)
+			stack_trace("A holderless reagent made it's way to the phase list when it shouldn't")
+			STOP_PROCESSING(src, reagent)
+		if(reagent.holder != holder)
+			//We do this first because we want to update after we've done all the reagents in the holder
+			if(holder) //but this means we have a null holder on start
+				holder.update_pressure()
+			holder = reagent.holder
+
 		current_run.len--
 		//If holder is processing - then we don't need to
-		if(holder.datum_flags & DF_ISPROCESSING)
-			continue
-		for(var/datum/reagent/reagent as anything in current_run[holder])
-			if(QDELETED(reagent))
-				stack_trace("Found qdeleted reagent in [type]: [holder.my_atom] | [reagent], in the current_run list.")
-				processing -= reagent
-			else if(reagent.process(delta_realtime) == PROCESS_KILL) //we are realtime
+		if(!(holder.datum_flags & DF_ISPROCESSING))
+			if(reagent.process(delta_realtime) == PROCESS_KILL) //we are realtime
 				// fully stop so that a future START_PROCESSING will work
-				stop_processing(holder, reagent)
-			if (MC_TICK_CHECK)
-				return
-		holder.update_pressure()
+				STOP_PROCESSING(src, reagent)
+		if (MC_TICK_CHECK)
+			holder.update_pressure()
+			return
 
+
+/*
 /datum/controller/subsystem/processing/phase/proc/start_processing(datum/reagents/reagents, datum/reagent/reagent)
 	if(reagent.datum_flags & DF_ISPROCESSING)
 		return
@@ -56,3 +66,4 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 	processing[reagents] -= reagent
 	if(!length(processing[reagents]))
 		processing -= reagents
+*/

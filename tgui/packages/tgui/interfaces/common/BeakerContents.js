@@ -33,7 +33,7 @@ export const BeakerContents = props => {
               style={{
                 'position': 'relative',
                 'width': '105px',
-                'height': '24px',
+                'height': '16px',
                 'background-color': '#363636',
                 'border': '2px solid #363636',
                 'border-index': '0',
@@ -50,7 +50,7 @@ export const BeakerContents = props => {
                       'position': 'absolute',
                       'left': `${offset}px`,
                       'width': `${(phase.ratio*100)}%`,
-                      'height': '20px',
+                      'height': '12px',
                       'background-color': `${(phase.color)}`,
                     }}>
 

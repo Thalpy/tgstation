@@ -1028,6 +1028,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		stack_trace("[src] | [my_atom] was forced to stop reacting. This might be unintentional.")
 	//sum of output messages.
 	var/list/mix_message = list()
+	//How many reactions are we processing here?
+	var/equilibriums = length(reaction_list)
 	//Process over our reaction list
 	//See equilibrium.dm for mechanics
 	var/num_reactions = 0
@@ -1042,6 +1044,9 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 				mix_message += temp_mix_message
 			continue
 		SSblackbox.record_feedback("tally", "chemical_reaction", 1, "[equilibrium.reaction.type] total reaction steps")
+		///Move this out of the loop if too expensive
+		reaction_update_reagent_phase(delta_time/equilibriums)
+
 	if(num_reactions)
 		SEND_SIGNAL(src, COMSIG_REAGENTS_REACTION_STEP, num_reactions, delta_time)
 
@@ -1053,6 +1058,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	else
 		update_total()
 		handle_reactions()
+
 
 /*
 * This ends a single instance of an ongoing reaction
@@ -1269,14 +1275,20 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 ///Call this to check the phase states of all of the reagents within the holder, it will start processing them if true.
 /datum/reagents/proc/check_reagent_phase()
 	if(!reagent_list)
-		return
+		return FALSE
 	update_pressure()
 	var/needs_processing = FALSE
 	for(var/datum/reagent/reagent as anything in reagent_list)
 		needs_processing = reagent.check_phase_flux()
 		if(needs_processing)
-			SSphase.start_processing(src, reagent)
+			START_PROCESSING(SSphase, reagent)
 	return needs_processing
+
+///Calls an expedited method to update reagent's phases
+/datum/reagents/proc/reaction_update_reagent_phase(delta_time)
+	update_pressure()
+	for(var/datum/reagent/reagent as anything in reagent_list)
+		reagent.adjust_phase_targets(delta_time)
 
 ///Updates the pressure var of the holder - will consider the local area's pressure if it's an unsealed holder
 /datum/reagents/proc/update_pressure()

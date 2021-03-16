@@ -23,8 +23,6 @@
 	. = ..()
 	if(!mass)
 		mass = rand(20,500)//Terrible way of doing it but I'm going crazy doing all of these by hand so this is a placeholder
-	if(glass_price)
-		AddElement(/datum/element/venue_price, glass_price)
 
 /datum/reagent/consumable/on_mob_life(mob/living/carbon/M, delta_time, times_fired)
 	current_cycle++
