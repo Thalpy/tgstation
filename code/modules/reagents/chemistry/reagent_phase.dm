@@ -74,10 +74,10 @@
 	var/range
 
 /datum/reagent_phase/linear/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
-	var/required_pressure = gradient * temperature + constant
-	if(pressure < required_pressure - range)
+	var/required_pressure = (gradient * temperature) + (constant + range)
+	if(pressure < required_pressure)
 		return 0
-	return  clamp(((pressure - required_pressure) / range), 0, 1)
+	return  clamp((pressure/(range*2)), 0, 1)
 
 ///Default liquid
 /datum/reagent_phase/linear/liquid
@@ -133,6 +133,10 @@
 	var/datum/chemical_reaction/reverse_reaction
 	color = "#dd8bfd"
 
+//FERMI_TODO
+/datum/reagent_phase/plasma/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+	return 0
+
 /* FERMI_TODO
 /datum/reagent_phase/plasma/tick(datum/reagent/reagent, delta_time)
 	if(!reverse_reaction)
@@ -172,12 +176,12 @@
 	//These will be overwritten everytime this is called - but that should be fine (so we have less objects about)
 	gradient = generate_gradient(reagent)
 	constant = generate_constant(reagent)
-	..()
+	return ..()
 
 /datum/reagent_phase/linear/solid/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	gradient = generate_gradient(reagent)
 	constant = generate_constant(reagent)
-	..()
+	return ..()
 
 //These are to create gasses at room temp
 /datum/reagent_phase/linear/liquid/mass_effect/gas/generate_gradient(datum/reagent/reagent)

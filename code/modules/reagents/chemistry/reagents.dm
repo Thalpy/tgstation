@@ -106,7 +106,7 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	///Assoc list with key type of addiction this reagent feeds, and value amount of addiction points added per unit of reagent metabolzied (which means * REAGENTS_METABOLISM every life())
 	var/list/addiction_types = null
 
-/datum/reagent/New()
+/datum/reagent/New(resolve_phase = TRUE)
 	SHOULD_CALL_PARENT(TRUE)
 	. = ..()
 	if(length(GLOB.reagent_phase_list)) //Convert to object reference
@@ -115,11 +115,16 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
 			object_list[phase_lookup] = phase_states[item] ///OBJECT = percentage
 		phase_states = object_list
-	//Debug
+	else //At init a master reagent list is made - we don't want them to be processing their phases
+		phase_states = null
+	//Debug REMOVE THIS LATER
 	if(!mass)
 		mass = rand(20, 800)
 	if(material)
 		material = GET_MATERIAL_REF(material)
+	//Lest we calculate everything at the start
+	if(resolve_phase)
+		resolve_phase()
 
 /datum/reagent/Destroy() // This should only be called by the holder, so it's already handled clearing its references
 	. = ..()
@@ -305,45 +310,86 @@ Primarily used in reagents/reaction_agents
 /datum/reagent/proc/adjust_phase_targets(delta_time)
 	var/sum_ratio //What is our total target to adjust ratios to?
 	var/list/target_list = list()
+	var/positive_changes = 0 //how much SUM ratio we're changing - the target defines the rates
+	var/negative_changes = 0 //The NUMBER of ragents we're removing from
 	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
 		if(sum_ratio >= 1)
 			target_list[phase] = 0
+			//We're at our limit - but we still need to track what we're removing from
+			if(phase_states[phase] != 0)
+				negative_changes += 1
 			continue
 		var/ratio = phase.determine_phase_percent(src, holder.chem_temp, holder.pressure)
 		if(ratio < 0 || ratio > 1)
 			stack_trace("Ratio is giving a funky number: [ratio] for reagent: [type]")
+		else if(ratio > phase_states[phase])
+			//So we don't take too much
+			if(phase_states[phase] + (phase.transition_speed * delta_time) > 1)
+				positive_changes += 1-phase_states[phase]
+			else//Otherwise take it all
+				positive_changes += phase.transition_speed * delta_time
+		//Limit our addition to be 1 across all states
 		if(1 < sum_ratio + ratio )
 			ratio = 1 - sum_ratio
+		//We can't know if we're taking too much here, so we solve that in the next loop
+		//But we can know if we're taking away from our current - and we need to check we're not making more than possible
+		if(ratio < phase_states[phase])
+			negative_changes += 1
 		target_list[phase] = ratio
 		sum_ratio += ratio
+	if(!negative_changes && positive_changes)
+		stack_trace("Reagent is attempting to create matter from nothing! (positive changes with nothing to take it from)")
+		negative_changes = 1 //We broke - but lets not die too
+
 	//If we're not at our target yet - request an update on the next tick
 	var/needs_update = FALSE
 	for(var/datum/reagent_phase/phase in target_list) //target list is the target ratio assoc list
 		if(target_list[phase] == phase_states[phase])//No change
 			continue
-		var/transition_cap = (phase.transition_speed * delta_time)
-		var/current_phase_vol = phase_states[phase] * volume
-		var/target_phase_vol = target_list[phase] * volume
-		var/delta_vol = target_phase_vol - current_phase_vol
+		//This is the total potential change we're trying for
+		var/delta_change = target_list[phase] - phase_states[phase]
 		//if(prob(5))
 		//	message_admins("phase:[phase.phase] has a current ratio of: [phase_states[phase]*100]% [current_phase_vol]u with a target of [target_list[phase]*100]% [target_phase_vol]u totalling a delta of [delta_vol] capped at [transition_cap]")
 
-		if(target_phase_vol > current_phase_vol) //Positive change
-			var/amount = min(delta_vol, transition_cap)
-			phase.transition_to(src, amount)
-			phase_states[phase] = clamp(phase_states[phase] + (amount / volume), 0, 1)
+		if(delta_change > 0) //Positive change
+			//We recalculate this because we want to keep track of how much of our budget we're removing
+			var/positive_amount = phase.transition_speed * delta_time
+			if(phase_states[phase] + positive_amount > 1)
+				positive_amount = 1-phase_states[phase]
+			//Now we call related procs and add it
+			phase_states[phase] = round((phase.transition_speed * delta_time), CHEMICAL_VOLUME_MINIMUM)
+			phase.transition_to(src, positive_amount * volume)
 
-		if(target_phase_vol < current_phase_vol) //Negative change
-			var/amount = max(delta_vol, transition_cap)
-			amount = clamp(phase_states[phase] - amount, 0, 1)
-			phase.transition_from(src, amount)
-			phase_states[phase] = clamp(phase_states[phase] - (amount / volume), 0, 1)
+		if(delta_change < 0) //Negative change
+			//Now we can process our removals to fit
+			var/removal_amount = positive_changes / negative_changes
+			if(phase_states[phase] - removal_amount < 0)
+				removal_amount = phase_states[phase]
+			//Now we call related procs and remove it
+			phase_states[phase] = round((phase_states[phase] - removal_amount), CHEMICAL_VOLUME_MINIMUM)
+			phase.transition_from(src, removal_amount * volume)
+			///We removed the amount, so update our counters
+			positive_changes -= removal_amount
+			negative_changes -= 1
 
-		if(target_list[phase] != phase_states[phase])//We updated - but we're not at our target yet
+		if(round(target_list[phase], CHEMICAL_VOLUME_ROUNDING) != round(phase_states[phase], CHEMICAL_VOLUME_ROUNDING))//We updated - but we're not at our target yet
 			needs_update = TRUE
 	//Ensure we're 100%
 	check_phase_ratio(debug = TRUE)
 	return needs_update
+
+///Resolves the phase profile of a reagent immediately
+/datum/reagent/proc/resolve_phase(delta_time)
+	var/sum_ratio = 0
+	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
+		if(!istype(phase, /datum/))
+			phase = new()
+		var/temp = holder? holder.chem_temp : T20C
+		var/pressure = holder ? holder.pressure : ONE_ATMOSPHERE
+		var/ratio = phase.determine_phase_percent(src, temp, pressure)
+		if(1 < sum_ratio + ratio )
+			ratio = 1 - sum_ratio
+		phase_states[phase] = ratio
 
 ///Gets the phase datum from a state
 /datum/reagent/proc/get_phase(state)
@@ -374,9 +420,10 @@ Primarily used in reagents/reaction_agents
 	var/sum_ratio = 0
 	for(var/phase_state in phase_states)
 		sum_ratio += phase_states[phase_state]
+	sum_ratio = round(sum_ratio, CHEMICAL_VOLUME_MINIMUM) //Pesky 0.0000001s
 	if(sum_ratio != 1) //This can happen from set_phase_percent()
-		//if(debug)
-		//	stack_trace("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
+		if(debug)
+			stack_trace("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
 		for(var/datum/reagent_phase/phase_state in phase_states)
 			phase_states[phase_state] /= sum_ratio
 
@@ -385,24 +432,25 @@ Primarily used in reagents/reaction_agents
 ///Mostly a check for unsealed(), it's much better to call the holder's check_reagent_phase()
 ///Consider removing as it might encourage poor coding practice
 /datum/reagent/proc/check_phase_flux()
-	if(holder.flags & SUBSYSTEM_PROCESS_PHASE)
+	if(phase_states == null) //Are we a reference value? If so don't process imaginary reagents
+		return FALSE
+	if(holder.flags & REAGENTS_PROCESS_TYPE_PHASE)
 		return TRUE
-	if(!(holder.flags & SEALED) && get_phase_ratio(GAS)) //gases diffuse out when unsealed
+	//if(!(holder.flags & SEALED) && get_phase_ratio(GAS)) //gases diffuse out when unsealed FERMI_TODO
+	//	return TRUE
+	if(adjust_phase_targets(1))
 		return TRUE
-	adjust_phase_targets(1)
 	return FALSE
 
 ///Checks the current phases to see if the reaction speed/reaction purity is affected by phases
-/datum/reagent/proc/consider_phase_modifiers(var/datum/equilibrium/reaction)
-	var/sum_speed = 0 //Sum of speed modifiers
-	var/sum_purity = 0 //Sum of purity modifiers
+/datum/reagent/proc/consider_phase_modifiers()
+	var/list/modifiers = list(sum_speed = 0, sum_purity = 0) //Sum of speed modifiers
 	for(var/datum/reagent_phase/phase as anything in phase_states)
-		sum_speed += phase.reaction_speed_modifier * phase_states[phase]
-		sum_purity += phase.purity_modifier * phase_states[phase]
-	if(!sum_speed || !sum_purity)
+		modifiers["sum_speed"] += phase.reaction_speed_modifier * phase_states[phase]
+		modifiers["sum_purity"] += phase.purity_modifier * phase_states[phase]
+	if(!modifiers["sum_speed"] || !modifiers["sum_purity"])
 		stack_trace("Something went wrong when trying to calculate phase modifiers from reagent phase")
 		return
-	sum_speed /= length(phase_states)
-	sum_purity /= length(phase_states)
-	reaction.speed_mod *= sum_speed
-	reaction.h_ion_mod *= sum_purity
+	modifiers["sum_speed"] /= length(phase_states)
+	modifiers["sum_purity"] /= length(phase_states)
+	return modifiers

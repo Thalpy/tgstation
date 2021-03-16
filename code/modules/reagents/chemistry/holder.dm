@@ -156,12 +156,13 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			reagent.ignite_temperature = 300 + (reagent.mass * 10)
 
 		///Now we convert the associated typepaths to live reference lookup objects
+		/*
 		var/object_list = list()
 		for(var/item in reagent.phase_states)
 			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
 			object_list[phase_lookup] = reagent.phase_states[item] ///OBJECT = percentage
 		reagent.phase_states = object_list
-x
+		*/
 
 ///////////////////////////////Main reagents code/////////////////////////////////////////////
 
@@ -211,6 +212,8 @@ x
 
 /datum/reagents/Destroy()
 	//We're about to delete all reagents, so lets cleanup
+	//Stop our phase processing if we have it
+	SSreagents.stop_processing(src, REAGENTS_PROCESS_TYPE_PHASE)
 	for(var/datum/reagent/reagent as anything in reagent_list)
 		qdel(reagent)
 	reagent_list = null
@@ -899,7 +902,7 @@ x
 		return FALSE //Yup, no reactions here. No siree.
 
 	if(is_reacting)//Prevent wasteful calculations
-		if(!(flags & SUBSYSTEM_PROCESS_REACTION) || datum_flags != DF_ISPROCESSING)//If we're reacting - but not processing (i.e. we've transfered)
+		if(!(flags & REAGENTS_PROCESS_TYPE_REACTION) || datum_flags != DF_ISPROCESSING)//If we're reacting - but not processing (i.e. we've transfered)
 			SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_REACTION)
 		if(!(has_changed_state()))
 			return FALSE
@@ -907,7 +910,7 @@ x
 	var/list/cached_reagents = reagent_list
 	var/list/cached_reactions = GLOB.chemical_reactions_list
 	var/datum/cached_my_atom = my_atom
-	LAZYNULL(failed_but_capable_reactions)
+	failed_but_capable_reactions = null
 
 	. = 0
 	var/list/possible_reactions = list()
@@ -1173,12 +1176,13 @@ x
 	for(var/datum/chemical_reaction/reaction as anything in failed_but_capable_reactions)
 		if(reaction.is_cold_recipe)
 			if(reaction.required_temp < chem_temp)
-				return TRUE
+				if(((ph >= (reaction.optimal_ph_min - reaction.determin_ph_range)) && (ph <= (reaction.optimal_ph_max + reaction.determin_ph_range))))
+					return TRUE
 		else
 			if(reaction.required_temp < chem_temp)
-				return TRUE
-		if(((ph >= (reaction.optimal_ph_min - reaction.determin_ph_range)) && (ph <= (reaction.optimal_ph_max + reaction.determin_ph_range))))
-			return TRUE
+				if(((ph >= (reaction.optimal_ph_min - reaction.determin_ph_range)) && (ph <= (reaction.optimal_ph_max + reaction.determin_ph_range))))
+					return TRUE
+
 	return FALSE
 
 /datum/reagents/proc/update_previous_reagent_list()
@@ -1269,15 +1273,16 @@ x
 	if(!reagent_list)
 		return
 	update_pressure()
-	if(flags & SUBSYSTEM_PROCESS_PHASE)
+	if(flags & REAGENTS_PROCESS_TYPE_PHASE)
 		if(!(datum_flags & DF_ISPROCESSING))
-			stack_trace("Desync error: holder of [my_atom] has the processing flags SUBSYSTEM_PROCESS_PHASE while it's DF_ISPROCESSING flag is incorrectly set!")
+			stack_trace("Desync error: holder of [my_atom] has the processing flag REAGENTS_PROCESS_TYPE_REACTION while it's DF_ISPROCESSING flag is false!")
+			SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_PHASE)
 		return TRUE
 	var/needs_processing = FALSE
 	for(var/datum/reagent/reagent as anything in reagent_list)
 		needs_processing = reagent.check_phase_flux()
 	if(needs_processing)
-		SSreagents.start_processing(src, SUBSYSTEM_PROCESS_PHASE)
+		SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_PHASE)
 		return TRUE
 	return FALSE
 
@@ -1301,6 +1306,7 @@ x
 	//Get the pressure of the reagents in the holder
 	for(var/datum/reagent/reagent as anything in reagent_list)
 		active_states = 0
+		sum_moles = 0
 		for(var/datum/reagent_phase/phase in reagent.phase_states)
 			if(!reagent.phase_states[phase]) //phase is empty
 				continue

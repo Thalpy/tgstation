@@ -1,8 +1,3 @@
-//Used for active reactions in reagents/equilibrium datums
-
-#define REAGENTS_PROCESS_TYPE_REACTION 1
-#define REAGENTS_PROCESS_TYPE_PHASE 2
-
 PROCESSING_SUBSYSTEM_DEF(reagents)
 	name = "Reagents"
 	init_order = INIT_ORDER_REAGENTS
@@ -13,7 +8,7 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 	///What time was it when we last ticked
 	var/previous_world_time = 0
 	///The list of datums we're phase processing
-	var/list/datum/reagents/phase_processing
+	var/list/datum/reagents/phase_processing = list()
 
 /datum/controller/subsystem/processing/reagents/Initialize()
 	. = ..()
@@ -38,12 +33,15 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 	var/delta_realtime = (world.time - previous_world_time)/10 //normalise to s from ds
 	previous_world_time = world.time
 
-	while(current_run.len)
-		var/datum/thing = current_run[current_run.len]
+	while(current_run.len) //REACTIONS
+		var/datum/reagents/thing = current_run[current_run.len]
 		current_run.len--
 		if(QDELETED(thing))
 			stack_trace("Found qdeleted thing in [type], in the current_run list.")
 			processing -= thing
+		else if(!(thing.flags & REAGENTS_PROCESS_TYPE_REACTION))
+			stack_trace("[thing.my_atom] is missing the correct flag!")
+			thing.flags |= REAGENTS_PROCESS_TYPE_REACTION
 		else if(thing.process(delta_realtime) == PROCESS_KILL) //we are realtime
 			// fully stop so that a future START_PROCESSING will work
 			stop_processing(thing, REAGENTS_PROCESS_TYPE_REACTION)
@@ -51,12 +49,17 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 			return
 
 	//This might need reviewing - let me know if this is bad
-	for(var/datum/reagents/thing as anything in phase_processing)
+	for(var/datum/reagents/thing as anything in phase_processing) //PHASE
 		if(QDELETED(thing))
 			stack_trace("Found qdeleted thing in [type], in the phase_processing list.")
 			phase_processing -= thing
+		if(thing.flags & REAGENTS_PROCESS_TYPE_REACTION)//Above will autoupdate it for us so we don't want a double call
+			continue
+		if(!(thing.flags & REAGENTS_PROCESS_TYPE_PHASE))
+			stack_trace("[thing.my_atom] is missing the correct flag!")
+			thing.flags |= REAGENTS_PROCESS_TYPE_PHASE
 		else if(thing.process_phase(delta_realtime) == PROCESS_KILL) //we are realtime
-			stop_processing(thing, SUBSYSTEM_PROCESS_PHASE)
+			stop_processing(thing, REAGENTS_PROCESS_TYPE_PHASE)
 		if (MC_TICK_CHECK)
 			return
 
@@ -65,21 +68,21 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 		reagents.datum_flags |= DF_ISPROCESSING
 	switch(type)
 		if(REAGENTS_PROCESS_TYPE_REACTION)
-			if(!(reagents.flags |= SUBSYSTEM_PROCESS_REACTION))
-				reagents.flags |= SUBSYSTEM_PROCESS_REACTION
+			if(!(reagents.flags & REAGENTS_PROCESS_TYPE_REACTION))
+				reagents.flags |= REAGENTS_PROCESS_TYPE_REACTION
 				processing += reagents
 		if(REAGENTS_PROCESS_TYPE_PHASE)
-			if(!(reagents.flags |= SUBSYSTEM_PROCESS_PHASE))
-				reagents.flags |= SUBSYSTEM_PROCESS_PHASE
+			if(!(reagents.flags & REAGENTS_PROCESS_TYPE_PHASE))
+				reagents.flags |= REAGENTS_PROCESS_TYPE_PHASE
 				phase_processing += reagents
 
 /datum/controller/subsystem/processing/reagents/proc/stop_processing(datum/reagents/reagents, type)
 	switch(type)
 		if(REAGENTS_PROCESS_TYPE_REACTION)
-			reagents.flags &= ~SUBSYSTEM_PROCESS_REACTION
+			reagents.flags &= ~REAGENTS_PROCESS_TYPE_REACTION
 			processing -= reagents
 		if(REAGENTS_PROCESS_TYPE_PHASE)
-			reagents.flags &= ~SUBSYSTEM_PROCESS_PHASE
+			reagents.flags &= ~REAGENTS_PROCESS_TYPE_PHASE
 			phase_processing -= reagents
-	if(!(reagents.flags & SUBSYSTEM_PROCESS_REACTION) && !(reagents.flags & SUBSYSTEM_PROCESS_PHASE))
+	if(!(reagents.flags & REAGENTS_PROCESS_TYPE_REACTION) && !(reagents.flags & REAGENTS_PROCESS_TYPE_PHASE))
 		reagents.datum_flags &= ~DF_ISPROCESSING

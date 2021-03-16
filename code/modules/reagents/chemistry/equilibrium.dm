@@ -73,7 +73,7 @@
 
 
 /datum/equilibrium/Destroy()
-	if(reacted_vol < target_vol) //We did NOT finish from reagents - so we can restart this reaction given property changes in the beaker. (i.e. if it stops due to low temp, this will allow it to fast restart when heated up again)
+	if(reacted_vol < target_vol && reaction) //We did NOT finish from reagents - so we can restart this reaction given property changes in the beaker. (i.e. if it stops due to low temp, this will allow it to fast restart when heated up again)
 		LAZYADD(holder.failed_but_capable_reactions, reaction) //Consider replacing check with calculate_yield()
 	LAZYREMOVE(holder.reaction_list, src)
 	holder = null
@@ -120,6 +120,7 @@
 	//Reagents check should be handled in the calculate_yield() from multiplier
 
 	//If the product/reactants are too impure
+	var/phase_modifiers = list()
 	for(var/datum/reagent/reagent as anything in holder.reagent_list)
 		//this is done this way to reduce processing compared to holder.has_reagent(P)
 		for(var/datum/reagent/catalyst as anything in reaction.required_catalysts)
@@ -130,7 +131,9 @@
 			if(reagent.volume >= catalyst_agent.min_volume)
 				catalyst_agent.consider_catalyst(src)
 
-		reagent.consider_phase_modifiers(src)
+		phase_modifiers += reagent.consider_phase_modifiers()
+	speed_mod *= phase_modifiers["sum_speed"] / reaction.required_reagents.len
+	h_ion_mod *= phase_modifiers["sum_purity"] / reaction.required_reagents.len
 
 	if(!(total_matching_catalysts == reaction.required_catalysts.len))
 		return FALSE
@@ -458,6 +461,6 @@
 	SSblackbox.record_feedback("tally", "Reversed chemical reactions", 1, "[reaction.type] attempts")
 
 //Since we created a special reaction - lets delete it
-/datum/equilibrium/Destroy()
+/datum/equilibrium/reverse/Destroy()
 	QDEL_NULL(reaction)
 	..()
