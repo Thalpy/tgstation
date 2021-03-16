@@ -37,9 +37,6 @@ PROCESSING_SUBSYSTEM_DEF(reagents)
 		if(QDELETED(thing))
 			stack_trace("Found qdeleted thing in [type], in the current_run list.")
 			processing -= thing
-		else if(!(thing.flags & REAGENTS_PROCESS_TYPE_REACTION))
-			stack_trace("[thing.my_atom] is missing the correct flag!")
-			thing.flags |= REAGENTS_PROCESS_TYPE_REACTION
 		else if(thing.process(delta_realtime) == PROCESS_KILL) //we are realtime
 			// fully stop so that a future START_PROCESSING will work
 			STOP_PROCESSING(src, thing)
