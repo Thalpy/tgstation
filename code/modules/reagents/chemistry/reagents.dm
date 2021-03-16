@@ -327,6 +327,8 @@ Primarily used in reagents/reaction_agents
 	var/positive_changes = 0 //how much SUM ratio we're changing - the target defines the rates
 	var/negative_changes = 0 //The NUMBER of ragents we're removing from
 	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
+		if(phase_states[phase] > 1)
+			stack_trace("Input phase [phase.phase] is giving funky input ratios [phase_states[phase]]")
 		if(sum_ratio >= 1)
 			target_list[phase] = 0
 			//We're at our limit - but we still need to track what we're removing from
@@ -343,7 +345,7 @@ Primarily used in reagents/reaction_agents
 			//If our delta_realtime is huge - it can cause problems
 			var/phase_specific_time = min(phase.transition_speed * delta_time, 1)
 			//So we don't take too much
-			var/potential_change = round(phase_specific_time, CHEMICAL_VOLUME_MINIMUM)
+			var/potential_change = round(phase_specific_time, CHEMICAL_QUANTISATION_LEVEL)
 			if(phase_states[phase] + potential_change > 1)
 				positive_changes += 1-phase_states[phase]
 			else//Otherwise take it all
@@ -371,9 +373,9 @@ Primarily used in reagents/reaction_agents
 			//No delta_time shenanigans please
 			var/phase_specific_time = min(phase.transition_speed * delta_time, 1)
 			//We recalculate this because we want to keep track of how much of our budget we're removing
-			var/positive_amount = round(phase_specific_time, CHEMICAL_VOLUME_MINIMUM)
-			if(phase_states[phase] + positive_amount > 1)
-				positive_amount = 1-phase_states[phase]
+			var/positive_amount = round(phase_specific_time, CHEMICAL_QUANTISATION_LEVEL)
+			if(phase_states[phase] + positive_amount > target_list[phase])
+				positive_amount = target_list[phase] - phase_states[phase]
 			//Now we call related procs and add it
 			phase_states[phase] += positive_amount
 			phase.transition_to(src, positive_amount * volume)
@@ -381,9 +383,9 @@ Primarily used in reagents/reaction_agents
 
 		if(delta_change < 0) //Negative change
 			//Now we can process our removals to fit
-			var/removal_amount = round(positive_changes / negative_changes, CHEMICAL_VOLUME_MINIMUM)
-			if(phase_states[phase] - removal_amount < 0)
-				removal_amount = phase_states[phase]
+			var/removal_amount = round(positive_changes / negative_changes, CHEMICAL_QUANTISATION_LEVEL)
+			if(phase_states[phase] - removal_amount < target_list[phase])
+				removal_amount = phase_states[phase] - target_list[phase]
 			//Now we call related procs and remove it
 			phase_states[phase] -= removal_amount
 			phase.transition_from(src, removal_amount * volume)
@@ -408,13 +410,11 @@ Primarily used in reagents/reaction_agents
 		if(sum_ratio >= 1)
 			phase_states[phase] = 0
 			continue
-		//var/temp = holder? holder.chem_temp : T20C
-		//var/pressure = holder ? holder.pressure : ONE_ATMOSPHERE
 		var/ratio = phase.determine_phase_percent(src, temp, pressure)
 		if(1 < sum_ratio + ratio)
 			ratio = 1 - sum_ratio
 		sum_ratio += ratio
-		phase_states[phase] = round(ratio, CHEMICAL_VOLUME_ROUNDING)
+		phase_states[phase] = round(ratio, CHEMICAL_QUANTISATION_LEVEL)
 	check_phase_ratio(debug = TRUE)
 
 ///Gets the phase datum from a state
