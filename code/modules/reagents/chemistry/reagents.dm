@@ -106,9 +106,14 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	///Assoc list with key type of addiction this reagent feeds, and value amount of addiction points added per unit of reagent metabolzied (which means * REAGENTS_METABOLISM every life())
 	var/list/addiction_types = null
 
-/datum/reagent/New(resolve_phase = TRUE)
+/datum/reagent/New()
 	SHOULD_CALL_PARENT(TRUE)
 	. = ..()
+	if(!mass)
+		mass = rand(20, 800)
+	if(material)
+		material = GET_MATERIAL_REF(material)
+	//Lest we calculate everything at the start
 	if(length(GLOB.reagent_phase_list)) //Convert to object reference
 		var/object_list = list()
 		for(var/item in phase_states)
@@ -117,19 +122,13 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 		phase_states = object_list
 	else //At init a master reagent list is made - we don't want them to be processing their phases
 		phase_states = null
-	//Debug REMOVE THIS LATER
-	if(!mass)
-		mass = rand(20, 800)
-	if(material)
-		material = GET_MATERIAL_REF(material)
-	//Lest we calculate everything at the start
-	if(resolve_phase)
-		resolve_phase()
+
 
 /datum/reagent/Destroy() // This should only be called by the holder, so it's already handled clearing its references
-	. = ..()
+	STOP_PROCESSING(SSphase, src)
 	holder = null
 	phase_states = null //Do not destroy reference - it's a lookup table
+	..()
 
 ///A test called on this reagent from the unit testing methods
 ///Use this to set up tests specific to a reagent subtype
@@ -303,7 +302,7 @@ Primarily used in reagents/reaction_agents
 
 ///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this from it's holder
 ///Processes the phases of each reagent in the holder
-/datum/reagents/process(delta_time)
+/datum/reagent/process(delta_time)
 	var/needs_update = adjust_phase_targets(delta_time)
 	if(!needs_update)
 		return PROCESS_KILL
@@ -315,6 +314,10 @@ Primarily used in reagents/reaction_agents
  * If we
  */
 /datum/reagent/proc/adjust_phase_targets(delta_time)
+	//Debug
+	if(!holder)
+		stack_trace("Attempted to update [type]'s phases, but it has no holder!")
+		return FALSE
 	var/sum_ratio //What is our total target to adjust ratios to?
 	var/list/target_list = list()
 	var/positive_changes = 0 //how much SUM ratio we're changing - the target defines the rates
@@ -386,17 +389,23 @@ Primarily used in reagents/reaction_agents
 	return needs_update
 
 ///Resolves the phase profile of a reagent immediately
-/datum/reagent/proc/resolve_phase(delta_time)
+/datum/reagent/proc/resolve_phase(temp, pressure)
 	var/sum_ratio = 0
 	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
 		if(!istype(phase, /datum/))
-			phase = new()
-		var/temp = holder? holder.chem_temp : T20C
-		var/pressure = holder ? holder.pressure : ONE_ATMOSPHERE
+			stack_trace("Phases are not set up correctly! Is this a reference value?")
+			return FALSE
+		if(sum_ratio >= 1)
+			phase_states[phase] = 0
+			continue
+		//var/temp = holder? holder.chem_temp : T20C
+		//var/pressure = holder ? holder.pressure : ONE_ATMOSPHERE
 		var/ratio = phase.determine_phase_percent(src, temp, pressure)
-		if(1 < sum_ratio + ratio )
+		if(1 < sum_ratio + ratio)
 			ratio = 1 - sum_ratio
+		sum_ratio += ratio
 		phase_states[phase] = ratio
+	check_phase_ratio(debug = TRUE)
 
 ///Gets the phase datum from a state
 /datum/reagent/proc/get_phase(state)

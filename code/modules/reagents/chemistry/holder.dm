@@ -39,7 +39,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	for(var/path in paths)
 		if(path in GLOB.fake_reagent_blacklist)
 			continue
-		var/datum/reagent/D = new path()
+		var/datum/reagent/D = new path() //Reference values shouldn't have phase profiles
 		GLOB.chemical_reagents_list[path] = D
 
 /proc/build_chemical_reactions_lists()
@@ -214,7 +214,6 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	//We're about to delete all reagents, so lets cleanup
 	//Stop our phase processing if we have it
 	for(var/datum/reagent/reagent as anything in reagent_list)
-		reagent.STOP_PROCESSING(SSphase, reagent)
 		qdel(reagent)
 	reagent_list = null
 	if(is_reacting) //If false, reaction list should be cleaned up
@@ -306,6 +305,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	new_reagent.purity = added_purity
 	new_reagent.creation_purity = added_purity
 	new_reagent.ph = added_ph
+	new_reagent.resolve_phase(chem_temp, pressure)
 	if(data)
 		new_reagent.data = data
 		new_reagent.on_new(data)

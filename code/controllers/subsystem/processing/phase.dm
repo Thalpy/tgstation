@@ -44,14 +44,15 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 		holder.update_pressure()
 
 /datum/controller/subsystem/processing/phase/proc/start_processing(datum/reagents/reagents, datum/reagent/reagent)
+	if(reagent.datum_flags & DF_ISPROCESSING)
+		return
 	if(!processing[reagents])
 		processing[reagents] = list()
-	if(!(reagent.datum_flags & DF_ISPROCESSING))
-		reagent.datum_flags |= DF_ISPROCESSING
-		processing[reagents] += reagents
+	reagent.datum_flags |= DF_ISPROCESSING
+	processing[reagents] += reagent
 
 /datum/controller/subsystem/processing/phase/proc/stop_processing(datum/reagents/reagents, datum/reagent/reagent)
 	reagent.datum_flags &= ~DF_ISPROCESSING
-	processing[reagents] -= reagents
+	processing[reagents] -= reagent
 	if(!length(processing[reagents]))
 		processing -= reagents
