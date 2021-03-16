@@ -301,6 +301,13 @@ Primarily used in reagents/reaction_agents
  */
 /datum/reagent/proc/diffuse(amount, delta_time)
 
+///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this from it's holder
+///Processes the phases of each reagent in the holder
+/datum/reagents/process(delta_time)
+	var/needs_update = adjust_phase_targets(delta_time)
+	if(!needs_update)
+		return PROCESS_KILL
+
 /*
  * Calculates the new target for the reagent's phase states.
  * First we go through our list of possible phases - the ordering is important as we stop calculating as soon as we've hit a sum ratio of 1
@@ -434,8 +441,8 @@ Primarily used in reagents/reaction_agents
 /datum/reagent/proc/check_phase_flux()
 	if(phase_states == null) //Are we a reference value? If so don't process imaginary reagents
 		return FALSE
-	if(holder.flags & REAGENTS_PROCESS_TYPE_PHASE)
-		return TRUE
+	if(datum_flags == DF_ISPROCESSING)//We're already processing
+		return FALSE
 	//if(!(holder.flags & SEALED) && get_phase_ratio(GAS)) //gases diffuse out when unsealed FERMI_TODO
 	//	return TRUE
 	if(adjust_phase_targets(1))

@@ -213,8 +213,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 /datum/reagents/Destroy()
 	//We're about to delete all reagents, so lets cleanup
 	//Stop our phase processing if we have it
-	SSreagents.stop_processing(src, REAGENTS_PROCESS_TYPE_PHASE)
 	for(var/datum/reagent/reagent as anything in reagent_list)
+		reagent.STOP_PROCESSING(SSphase, reagent)
 		qdel(reagent)
 	reagent_list = null
 	if(is_reacting) //If false, reaction list should be cleaned up
@@ -902,8 +902,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		return FALSE //Yup, no reactions here. No siree.
 
 	if(is_reacting)//Prevent wasteful calculations
-		if(!(flags & REAGENTS_PROCESS_TYPE_REACTION) || datum_flags != DF_ISPROCESSING)//If we're reacting - but not processing (i.e. we've transfered)
-			SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_REACTION)
+		if(datum_flags != DF_ISPROCESSING)//If we're reacting - but not processing (i.e. we've transfered)
+			START_PROCESSING(SSreagents, src) //see process() to see how reactions are handled
 		if(!(has_changed_state()))
 			return FALSE
 
@@ -1006,14 +1006,12 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 
 	if(LAZYLEN(reaction_list))
 		is_reacting = TRUE //We've entered the reaction phase - this is set here so any reagent handling called in on_reaction() doesn't cause infinite loops
-		SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_REACTION)
+		START_PROCESSING(SSreagents, src)
 	else
 		is_reacting = FALSE
 
 	if(.)
 		SEND_SIGNAL(src, COMSIG_REAGENTS_REACTED, .)
-	else
-		check_reagent_phase()
 
 /*
 * Main Reaction loop handler, Do not call this directly
@@ -1088,7 +1086,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 * Also resets reaction variables to be null/empty/FALSE so that it can restart correctly in the future
 */
 /datum/reagents/proc/finish_reacting()
-	SSreagents.stop_processing(src, REAGENTS_PROCESS_TYPE_REACTION)
+	STOP_PROCESSING(SSreagents, src)
 	is_reacting = FALSE
 	//Cap off values
 	for(var/datum/reagent/reagent as anything in reagent_list)
@@ -1273,28 +1271,12 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	if(!reagent_list)
 		return
 	update_pressure()
-	if(flags & REAGENTS_PROCESS_TYPE_PHASE)
-		if(!(datum_flags & DF_ISPROCESSING))
-			stack_trace("Desync error: holder of [my_atom] has the processing flag REAGENTS_PROCESS_TYPE_REACTION while it's DF_ISPROCESSING flag is false!")
-			SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_PHASE)
-		return TRUE
 	var/needs_processing = FALSE
 	for(var/datum/reagent/reagent as anything in reagent_list)
 		needs_processing = reagent.check_phase_flux()
-	if(needs_processing)
-		SSreagents.start_processing(src, REAGENTS_PROCESS_TYPE_PHASE)
-		return TRUE
-	return FALSE
-
-///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this
-///Processes the phases of each reagent in the holder
-/datum/reagents/proc/process_phase(delta_time)
-	var/needs_update = FALSE
-	for(var/datum/reagent/reagent as anything in reagent_list)
-		needs_update = reagent.adjust_phase_targets(delta_time)
-	update_pressure()
-	if(!needs_update)
-		return PROCESS_KILL
+		if(needs_processing)
+			SSphase.start_processing(src, reagent)
+	return needs_processing
 
 ///Updates the pressure var of the holder - will consider the local area's pressure if it's an unsealed holder
 /datum/reagents/proc/update_pressure()
@@ -1311,12 +1293,11 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			if(!reagent.phase_states[phase]) //phase is empty
 				continue
 			active_states++
-			//sum_volume += ((reagent.volume * phase_states[phase]) / phase.density) / reagent.volume
-			//Consider moving the log function to outside of the loop
-			sum_moles = log(((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density), 10)
+			//How much "raw" molar volume we have before normalising it
+			sum_moles += ((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density)
 		//pV = nRT except I fudge numbers and ideology is gone
 		//1atm = 101 kPa, but lets just make it simple and make it 100
-		sum_pressure += (sum_moles * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume * active_states)
+		sum_pressure += (log(sum_moles, 10) * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume * active_states)
 	sum_pressure /= reagent_list.len
 	//If we're in a holder that isn't sealed
 	if(!(flags & SEALED)) //FERMI_TODO
