@@ -35,6 +35,9 @@
 ///When this current phase has a certain volume added to it
 /datum/reagent_phase/proc/transition_to(datum/reagent/reagent, amount, target_phase)
 
+///Used to calculate the GUI phase graph output of the phases x value
+/datum/reagent_phase/proc/get_graph_coords()
+
 //Default phase gas
 /datum/reagent_phase/gas
 	phase = GAS
@@ -83,6 +86,19 @@
 	var/ratio = (pressure - required_pressure) / (saturation_pressure - required_pressure)
 	return  clamp(ratio, 0, 1)
 
+/datum/reagent_phase/linear/get_graph_coords()
+	var/x1 = -(constant+range)/gradient
+	var/y1 = 0
+	if(x1 < 0)
+		x1 = 0
+		y1 = gradient + constant + range
+	var/x2 = 1100
+	var/y2 = (gradient * 1100) + constant + range
+	if(y2 > 600)
+		x2 = (600-(constant + range))/gradient
+		y2 = 600
+	return list("x1" = x1, "x2" = x2, "y1" = y1, "y2" = y2, "range" = range*2, "color" = color)
+
 ///Default liquid
 /datum/reagent_phase/linear/liquid
 	phase = LIQUID
@@ -126,6 +142,10 @@
 	constant = solid.constant
 	. = ..()
 	return min(., reagent.phase_states[src])//So we can only remain the same, or go lower
+
+///We don't want this to appear on our graph
+/datum/reagent_phase/linear/solid/powder/get_graph_coords()
+	return null
 
 ///Plasma - called IONISED because plasma is everywhere in the codebase
 /datum/reagent_phase/plasma
@@ -182,7 +202,17 @@
 	constant = generate_constant(reagent)
 	return ..()
 
+/datum/reagent_phase/linear/liquid/mass_effect/get_graph_coords(datum/reagent/reagent)
+	gradient = generate_gradient(reagent)
+	constant = generate_constant(reagent)
+	return ..()
+
 /datum/reagent_phase/linear/solid/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+	gradient = generate_gradient(reagent)
+	constant = generate_constant(reagent)
+	return ..()
+
+/datum/reagent_phase/linear/solid/mass_effect/get_graph_coords(datum/reagent/reagent)
 	gradient = generate_gradient(reagent)
 	constant = generate_constant(reagent)
 	return ..()

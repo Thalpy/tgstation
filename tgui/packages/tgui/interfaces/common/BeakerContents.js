@@ -2,10 +2,10 @@ import { AnimatedNumber, Box, Flex, Tooltip } from '../../components';
 
 export const BeakerContents = props => {
   const { beakerLoaded, beakerContents } = props;
-  var offset = 0;
+  let offset = 0;
   const incrementOffset = increment => {
-    offset += increment
-  }
+    offset += increment;
+  };
   return (
     <Box>
       {!beakerLoaded && (
@@ -52,15 +52,16 @@ export const BeakerContents = props => {
                       'width': `${(phase.ratio*100)}%`,
                       'height': '12px',
                       'background-color': `${(phase.color)}`,
+                      'transition': '1.2s ease-out',
                     }}>
 
                     <Tooltip
                       content={`${(phase.name)}: ${(phase.ratio*100)}%`} />
-                      {incrementOffset(phase.ratio*100)}
+                    {incrementOffset(phase.ratio*100)}
                   </Box>
                 )
               ))}
-            {incrementOffset(-100)}
+              {incrementOffset(-100)}
             </Box>
           </Flex.Item>
         </Flex>

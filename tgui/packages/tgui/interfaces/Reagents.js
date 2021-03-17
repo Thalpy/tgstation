@@ -14,6 +14,8 @@ export const Reagents = (props, context) => {
     beakerSync,
     reagent_mode_recipe,
     reagent_mode_reagent,
+    temp,
+    pressure,
     bitflags = {},
   } = data;
 
@@ -105,7 +107,10 @@ export const Reagents = (props, context) => {
                         })} />
                     </>
                   )}>
-                  <ReagentLookup reagent={reagent_mode_reagent} />
+                  <ReagentLookup
+                    reagent={reagent_mode_reagent}
+                    temp={temp}
+                    pressure={pressure}/>
                 </Section>
               </Stack.Item>
             </Stack>

@@ -122,8 +122,8 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
 			object_list[phase_lookup] = phase_states[item] ///OBJECT = percentage
 		phase_states = object_list
-	else //At init a master reagent list is made - we don't want them to be processing their phases
-		phase_states = null
+	//else //At init a master reagent list is made - we don't want them to be processing their phases
+		//phase_states = null
 	if(glass_price)
 		AddElement(/datum/element/venue_price, glass_price)
 
@@ -357,7 +357,7 @@ Primarily used in reagents/reaction_agents
 			ratio = 1 - sum_ratio
 		//Positive change
 		if(ratio > phase_states[phase])
-			var/difference = ratio - phase_states[phase]
+			var/difference = round(ratio - phase_states[phase], CHEMICAL_VOLUME_MINIMUM)
 			//If our delta_realtime is huge - it can cause problems
 			var/phase_specific_time = min(phase.transition_speed * delta_time, 1)
 			//So we don't take too much
@@ -366,12 +366,15 @@ Primarily used in reagents/reaction_agents
 				needs_update = TRUE
 			else
 				potential_change = difference
+			if(potential_change == 0)//Rounding error catch
+				continue
 			if(phase_states[phase] + potential_change > 1)
 				positive_changes += 1-phase_states[phase]
 				positive_budget[phase] += 1-phase_states[phase]
 			else//Otherwise take it all
 				positive_changes += potential_change
 				positive_budget[phase] += potential_change
+
 			debug += "Prephase: phase [phase.phase] has a positive target of [potential_change]\n"
 		//We can't know if we're taking too much here, so we solve that in the next loop
 		//But we can know if we're taking away from our current - and we need to check we're not making more than possible

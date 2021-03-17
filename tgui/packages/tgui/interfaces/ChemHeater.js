@@ -166,7 +166,7 @@ export const ChemHeater = (props, context) => {
               <Flex>
                 <Flex.Item
                   ml={2}>
-                <AnimatedNumber
+                  <AnimatedNumber
                     value={data.pressure}
                     format={value => round(value, 2) + "kPa "} />
                 </Flex.Item>

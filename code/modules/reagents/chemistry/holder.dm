@@ -1787,6 +1787,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	data["currentReagents"] = previous_reagent_list //This keeps the string of reagents that's updated when handle_reactions() is called
 	data["beakerSync"] = ui_beaker_sync
 	data["linkedBeaker"] = my_atom.name //To solidify the fact that the UI is linked to a beaker - not a machine.
+	data["temp"] = chem_temp
+	data["pressure"] = pressure
 
 	//First we check to see if reactions are synced with the beaker
 	if(ui_beaker_sync)
@@ -1825,6 +1827,14 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 
 			if(reagent.chemical_flags & REAGENT_DEAD_PROCESS)
 				data["reagent_mode_reagent"] += list("deadProcess" = TRUE)
+
+			data["reagent_mode_reagent"]["phaseProfiles"] = list()
+			for(var/entry in reagent.phase_states)
+				var/datum/reagent_phase/phase = GLOB.reagent_phase_list[entry]
+				var/list/profile = phase.get_graph_coords(reagent)
+				if(!profile)
+					continue
+				data["reagent_mode_reagent"]["phaseProfiles"] += list(profile)
 	else
 		data["reagent_mode_reagent"] = null
 
