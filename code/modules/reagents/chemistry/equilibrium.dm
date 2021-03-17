@@ -120,7 +120,7 @@
 	//Reagents check should be handled in the calculate_yield() from multiplier
 
 	//If the product/reactants are too impure
-	var/phase_modifiers = list()
+	var/list/phase_modifiers = list("sum_speed" = 0, "sum_purity" = 0, "items" = 0)
 	for(var/datum/reagent/reagent as anything in holder.reagent_list)
 		//this is done this way to reduce processing compared to holder.has_reagent(P)
 		for(var/datum/reagent/catalyst as anything in reaction.required_catalysts)
@@ -131,9 +131,10 @@
 			if(reagent.volume >= catalyst_agent.min_volume)
 				catalyst_agent.consider_catalyst(src)
 
-		phase_modifiers += reagent.consider_phase_modifiers()
+		for(var/datum/reagent/req_reagent as anything in reaction.required_reagents)
+			if(req_reagent == reagent.type)
+				phase_modifiers = reagent.consider_phase_modifiers(phase_modifiers)
 	speed_mod *= phase_modifiers["sum_speed"] / reaction.required_reagents.len
-	h_ion_mod *= phase_modifiers["sum_purity"] / reaction.required_reagents.len
 
 	if(!(total_matching_catalysts == reaction.required_catalysts.len))
 		return FALSE

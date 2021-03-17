@@ -1,3 +1,5 @@
+#define REAGENT_GAS_DEFAULT_SPEED 0.4
+
 /*
  * P = mT + c
  * Temperature is T (K)
@@ -37,11 +39,11 @@
 /datum/reagent_phase/gas
 	phase = GAS
 	density = 0.5
-	reaction_speed_modifier = 0.2
+	reaction_speed_modifier = REAGENT_GAS_DEFAULT_SPEED
 	color = "#5fcffc"
 
 /datum/reagent_phase/gas/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
-	reaction_speed_modifier = clamp(pressure/100 * 0.2, 0.1, 0.8)
+	reaction_speed_modifier = clamp(pressure/100 * REAGENT_GAS_DEFAULT_SPEED, 0.2, 0.9)
 	return 1
 
 /datum/reagent_phase/gas/tick(datum/reagent/reagent, delta_time)
@@ -74,10 +76,12 @@
 	var/range
 
 /datum/reagent_phase/linear/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
-	var/required_pressure = (gradient * temperature) + (constant + range)
+	var/required_pressure = (gradient * temperature) + (constant - range)
 	if(pressure < required_pressure)
 		return 0
-	return  clamp((pressure/(range*2)), 0, 1)
+	var/saturation_pressure = (gradient * temperature) + (constant + range)
+	var/ratio = (pressure - required_pressure) / (saturation_pressure - required_pressure)
+	return  clamp(ratio, 0, 1)
 
 ///Default liquid
 /datum/reagent_phase/linear/liquid
@@ -94,7 +98,7 @@
 	gradient = 0.12
 	constant = -2.4
 	range = 50
-	reaction_speed_modifier = 0.35
+	reaction_speed_modifier = 0.55
 	density = 1.5
 	color = "#e4f582"
 
@@ -109,7 +113,7 @@
 ///Ground powder
 /datum/reagent_phase/linear/solid/powder
 	phase = POWDER
-	reaction_speed_modifier = 0.9
+	reaction_speed_modifier = 0.95
 	density = 1.25
 	color = "#e78c4f"
 

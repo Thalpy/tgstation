@@ -322,82 +322,97 @@ Primarily used in reagents/reaction_agents
 	if(!holder)
 		stack_trace("Attempted to update [type]'s phases, but it has no holder!")
 		return FALSE
+	check_phase_ratio("Failed ratios at the start!") //Remove me later
 	var/sum_ratio //What is our total target to adjust ratios to?
-	var/list/target_list = list()
+	//var/list/target_list = list()
 	var/positive_changes = 0 //how much SUM ratio we're changing - the target defines the rates
-	var/negative_changes = 0 //The NUMBER of ragents we're removing from
+	var/list/positive_budget = list()
+	//var/negative_changes = 0 //The NUMBER of ragents we're removing from
+	var/list/negative_budget = list() //The total ratio of all the phases
+	var/debug = "[type] [delta_time]\n"
+	var/needs_update = FALSE
+	var/unchanged = 0
 	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
 		if(phase_states[phase] > 1)
 			stack_trace("Input phase [phase.phase] is giving funky input ratios [phase_states[phase]]")
 		if(sum_ratio >= 1)
-			target_list[phase] = 0
+			//target_list[phase] = 0
 			//We're at our limit - but we still need to track what we're removing from
 			if(phase_states[phase] != 0)
-				negative_changes += 1
+				//negative_changes += 1
+				negative_budget[phase] += phase_states[phase]
+				debug += "Prephase: phase [phase.phase] has a ratio of [phase_states[phase]] with a target of 0\n"
+				debug += "Prephase: phase [phase.phase] has a negative budget of [phase_states[phase]]\n"
+			else
+				unchanged++
 			continue
-		var/ratio = phase.determine_phase_percent(src, holder.chem_temp, holder.pressure)
+		var/ratio = round(phase.determine_phase_percent(src, holder.chem_temp, holder.pressure), CHEMICAL_VOLUME_MINIMUM)
+		debug += "Prephase: phase [phase.phase] has a ratio of [phase_states[phase]] with a target of [ratio]\n"
 		if(ratio < 0 || ratio > 1)
 			stack_trace("Ratio is giving a funky number: [ratio] for reagent: [type]")
+		else if (phase_states[phase] == ratio)
+			unchanged++
 		//Limit our addition to be 1 across all states
 		if(1 < sum_ratio + ratio )
 			ratio = 1 - sum_ratio
+		//Positive change
 		if(ratio > phase_states[phase])
+			var/difference = ratio - phase_states[phase]
 			//If our delta_realtime is huge - it can cause problems
 			var/phase_specific_time = min(phase.transition_speed * delta_time, 1)
 			//So we don't take too much
-			var/potential_change = round(phase_specific_time, CHEMICAL_QUANTISATION_LEVEL)
+			var/potential_change = phase_specific_time
+			if(difference > phase_specific_time)
+				needs_update = TRUE
+			else
+				potential_change = difference
 			if(phase_states[phase] + potential_change > 1)
 				positive_changes += 1-phase_states[phase]
+				positive_budget[phase] += 1-phase_states[phase]
 			else//Otherwise take it all
 				positive_changes += potential_change
+				positive_budget[phase] += potential_change
+			debug += "Prephase: phase [phase.phase] has a positive target of [potential_change]\n"
 		//We can't know if we're taking too much here, so we solve that in the next loop
 		//But we can know if we're taking away from our current - and we need to check we're not making more than possible
-		if(ratio < phase_states[phase])
-			negative_changes += 1
-		target_list[phase] = ratio
+		else if(ratio < phase_states[phase])
+			negative_budget[phase] += phase_states[phase]
+			debug += "Prephase: phase [phase.phase] has a negative budget of [phase_states[phase]]\n"
 		sum_ratio += ratio
-	if(!negative_changes && positive_changes)
-		stack_trace("Reagent is attempting to create matter from nothing! (positive changes with nothing to take it from) positive:[positive_changes] negative:[negative_changes]")
-		negative_changes = 1 //We broke - but lets not die too
-	if(!negative_changes || !positive_changes) //No changes!
+	if(unchanged == length(phase_states))
 		return FALSE
-	//If we're not at our target yet - request an update on the next tick
-	var/needs_update = FALSE
-	for(var/datum/reagent_phase/phase in target_list) //target list is the target ratio assoc list
-		if(target_list[phase] == phase_states[phase])//No change
-			continue
-		//This is the total potential change we're trying for
-		var/delta_change = target_list[phase] - phase_states[phase]
+	if(!negative_budget.len && positive_budget.len)
+		stack_trace("Reagent [type] is attempting to create matter from nothing! (positive changes with nothing to take it from)")
+	if(!negative_budget.len || !positive_budget.len) //No changes!
+		return FALSE
+	debug += "TOTAL: Adding a total vol of [positive_changes].\n"
 
-		if(delta_change > 0) //Positive change
-			//No delta_time shenanigans please
-			var/phase_specific_time = min(phase.transition_speed * delta_time, 1)
-			//We recalculate this because we want to keep track of how much of our budget we're removing
-			var/positive_amount = round(phase_specific_time, CHEMICAL_QUANTISATION_LEVEL)
-			if(phase_states[phase] + positive_amount > target_list[phase])
-				positive_amount = target_list[phase] - phase_states[phase]
-			//Now we call related procs and add it
-			phase_states[phase] += positive_amount
-			phase.transition_to(src, positive_amount * volume)
-			message_plasma_admins("Adding [positive_amount] of positive change: [positive_changes]")
+	for(var/datum/reagent_phase/phase in negative_budget) //Negative
+		var/change = positive_changes / negative_budget.len
+		if(negative_budget[phase] < change)
+			positive_changes -= change - negative_budget[phase]
+			phase.transition_from(src, phase_states[phase] * volume)
+			phase_states[phase] = 0
+			debug += "[phase.phase] Removing [change - negative_budget[phase]] by setting it to 0 and removing [change - negative_budget[phase]] from positive changes [positive_changes]. Final ratio: [phase_states[phase]]\n"
+		else
+			phase.transition_from(src, change * volume)
+			phase_states[phase] = phase_states[phase] - change
+			debug += "[phase.phase] Removing [(positive_changes / negative_budget.len)] and setting it to [phase_states[phase]]\n"
 
-		if(delta_change < 0) //Negative change
-			//Now we can process our removals to fit
-			var/removal_amount = round(positive_changes / negative_changes, CHEMICAL_QUANTISATION_LEVEL)
-			if(phase_states[phase] - removal_amount < target_list[phase])
-				removal_amount = phase_states[phase] - target_list[phase]
-			//Now we call related procs and remove it
-			phase_states[phase] -= removal_amount
-			phase.transition_from(src, removal_amount * volume)
-			///We removed the amount, so update our counters
-			positive_changes -= removal_amount
-			negative_changes -= 1
-			message_plasma_admins("Removing[removal_amount] of negative change: [negative_changes]")
+	for(var/datum/reagent_phase/phase in positive_budget) //Positive
+		if(positive_budget[phase] > positive_changes)
+			phase.transition_from(src, positive_changes * volume)
+			phase_states[phase] = phase_states[phase] + positive_changes
+			debug += "[phase.phase] is overbudget, adding [positive_changes] instead of [positive_budget[phase]] and setting positive change to 0, final ratio: [phase_states[phase]]\n"
+			positive_changes = 0
+		else
+			phase.transition_from(src, positive_budget[phase] * volume)
+			phase_states[phase] = phase_states[phase] + positive_budget[phase]
+			positive_changes -= positive_budget[phase]
+			debug += "[phase.phase] adding [positive_budget[phase]] and setting positive budget to [positive_changes] with final ratio of [phase_states[phase]]\n"
 
-		if(round(target_list[phase], CHEMICAL_VOLUME_ROUNDING) != round(phase_states[phase], CHEMICAL_VOLUME_ROUNDING))//We updated - but we're not at our target yet
-			needs_update = TRUE
 	//Ensure we're 100%
-	check_phase_ratio(debug = TRUE)
+	check_phase_ratio(debug)
 	return needs_update
 
 ///Resolves the phase profile of a reagent immediately
@@ -416,6 +431,7 @@ Primarily used in reagents/reaction_agents
 		sum_ratio += ratio
 		phase_states[phase] = round(ratio, CHEMICAL_QUANTISATION_LEVEL)
 	check_phase_ratio(debug = TRUE)
+	STOP_PROCESSING(SSphase, src)
 
 ///Gets the phase datum from a state
 /datum/reagent/proc/get_phase(state)
@@ -446,12 +462,13 @@ Primarily used in reagents/reaction_agents
 	var/sum_ratio = 0
 	for(var/phase_state in phase_states)
 		sum_ratio += phase_states[phase_state]
-	sum_ratio = round(sum_ratio, CHEMICAL_VOLUME_MINIMUM) //Pesky 0.0000001s
+	sum_ratio = round(sum_ratio, CHEMICAL_VOLUME_ROUNDING) //Pesky 0.0000001s
 	if(sum_ratio != 1) //This can happen from set_phase_percent()
 		if(debug)
 			stack_trace("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
+			message_admins(debug + "\nFinal ratio: [sum_ratio]")
 		for(var/datum/reagent_phase/phase_state in phase_states)
-			phase_states[phase_state] = round(phase_states[phase_state] / sum_ratio, CHEMICAL_VOLUME_MINIMUM)
+			phase_states[phase_state] = phase_states[phase_state] / sum_ratio
 
 ///Checks to see if the current reagent is in flux,
 ///but doesn't check to see if the ratios are right - we shouldn't need to do this as processing should flag this correctly
@@ -472,16 +489,12 @@ Primarily used in reagents/reaction_agents
 	return FALSE
 
 ///Checks the current phases to see if the reaction speed/reaction purity is affected by phases
-/datum/reagent/proc/consider_phase_modifiers()
-	var/list/modifiers = list(sum_speed = 0, sum_purity = 0) //Sum of speed modifiers
+/datum/reagent/proc/consider_phase_modifiers(list/modifiers)
 	for(var/datum/reagent_phase/phase as anything in phase_states)
+		if(!phase_states[phase])
+			continue
 		modifiers["sum_speed"] += phase.reaction_speed_modifier * phase_states[phase]
 		modifiers["sum_purity"] += phase.purity_modifier * phase_states[phase]
-	if(!modifiers["sum_speed"] || !modifiers["sum_purity"])
-		stack_trace("Something went wrong when trying to calculate phase modifiers from reagent phase")
-		return
-	modifiers["sum_speed"] /= length(phase_states)
-	modifiers["sum_purity"] /= length(phase_states)
 	return modifiers
 
 

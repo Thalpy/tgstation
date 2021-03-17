@@ -46,7 +46,7 @@ export const Reagents = (props, context) => {
 
   return (
     <Window
-      width={720}
+      width={790}
       height={850}>
       <Window.Content>
         <Stack fill vertical>

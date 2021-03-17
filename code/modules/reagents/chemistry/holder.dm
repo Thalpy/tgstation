@@ -305,7 +305,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	new_reagent.purity = added_purity
 	new_reagent.creation_purity = added_purity
 	new_reagent.ph = added_ph
-	new_reagent.resolve_phase(chem_temp, pressure)
+
 	if(data)
 		new_reagent.data = data
 		new_reagent.on_new(data)
@@ -320,6 +320,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			set_temperature(((old_heat_capacity * cached_temp) + (new_reagent.specific_heat * amount * reagtemp)) / new_heat_capacity)
 		else
 			set_temperature(reagtemp)
+
+	new_reagent.resolve_phase(chem_temp, pressure)
 
 	SEND_SIGNAL(src, COMSIG_REAGENTS_NEW_REAGENT, new_reagent, amount, reagtemp, data, no_react)
 	if(!no_react)
@@ -1294,6 +1296,13 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 /datum/reagents/proc/update_pressure()
 	if(!length(reagent_list))
 		return
+	if(!(flags & SEALED)) //FERMI_TODO
+		var/datum/gas_mixture/local_gas = my_atom.return_air()
+		if(local_gas)//if we're not in nullspace
+			pressure = local_gas.return_pressure()
+		else
+			pressure = 0 //Uhhh
+		return
 	var/sum_pressure = 0
 	var/active_states
 	var/sum_moles
@@ -1306,17 +1315,13 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 				continue
 			active_states++
 			//How much "raw" molar volume we have before normalising it
-			sum_moles += ((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density)
+			sum_moles += log(((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density), 10)
 		//pV = nRT except I fudge numbers and ideology is gone
 		//1atm = 101 kPa, but lets just make it simple and make it 100
-		sum_pressure += (log(sum_moles, 10) * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume * active_states)
+		sum_pressure += (sum_moles * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume * active_states)
 	sum_pressure /= reagent_list.len
 	//If we're in a holder that isn't sealed
-	if(!(flags & SEALED)) //FERMI_TODO
-		var/datum/gas_mixture/local_gas = my_atom.return_air()
-		if(local_gas)//if we're not in nullspace
-			var/local_pressure = local_gas.return_pressure()
-			sum_pressure = (sum_pressure + local_pressure) / 2
+
 	//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
 	//Update our pressure
 	pressure = sum_pressure
