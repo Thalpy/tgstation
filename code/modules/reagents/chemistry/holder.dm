@@ -336,7 +336,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	SEND_SIGNAL(src, COMSIG_REAGENTS_NEW_REAGENT, new_reagent, amount, reagtemp, data, no_react)
 	if(!no_react)
 		handle_reactions()
-	return TRUE
+	return true
 
 /// Like add_reagent but you can enter a list. Format it like this: list(/datum/reagent/toxin = 10, "beer" = 15)
 /datum/reagents/proc/add_reagent_list(list/list_reagents, list/data=null)

@@ -55,6 +55,10 @@
 ///liquid to gas
 /datum/reagent_phase/gas/transition_from(datum/reagent/reagent, amount, delta_time)
 	reagent.holder.adjust_specific_reagent_ph(reagent.type, )
+	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_FROM_GAS, amount)
+
+/datum/reagent_phase/gas/transition_to(datum/reagent/reagent, amount)
+	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_TO_GAS, amount)
 
 ///If we're a gas and we're in an unsealed chamber
 /datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount, delta_time)

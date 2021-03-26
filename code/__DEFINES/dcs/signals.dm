@@ -251,6 +251,18 @@
 ///from base of [/datum/component/personal_crafting/proc/del_reqs]: ()
 #define COMSIG_REAGENTS_CRAFTING_PING "reagents_crafting_ping"
 
+//Phase states and phase related procs
+///from base of add this later because confuse code
+#define COMSIG_PHASE_STATE_DELETE "phase_state_delete"
+///from base of [datum/reagent/adjust_phase_targets]: (change_volume)
+#define COMSIG_PHASE_CHANGE_FROM_GAS "phase_from_gas"
+///from base of [datum/reagent/adjust_phase_targets]: (change_volume)
+#define COMSIG_PHASE_CHANGE_TO_GAS "phase_to_gas"
+///from base of [datum/reagent/adjust_phase_targets]: (change_volume)
+#define COMSIG_PHASE_CHANGE_FROM_LIQUID "phase_from_liquid"
+///from base of [datum/reagent/adjust_phase_targets]: (change_volume)
+#define COMSIG_PHASE_CHANGE_TO_LIQUID "phase_to_liquid"
+
 // Lighting:
 ///from base of [atom/proc/set_light]: (l_range, l_power, l_color, l_on)
 #define COMSIG_ATOM_SET_LIGHT "atom_set_light"

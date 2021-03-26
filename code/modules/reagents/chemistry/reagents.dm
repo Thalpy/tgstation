@@ -443,6 +443,13 @@ Primarily used in reagents/reaction_agents
 			return phase_state
 	return FALSE
 
+///Gets the phase related volume of a reagent
+/datum/reagent/proc/get_phase_volume(state)
+	for(var/datum/reagent_phase/phase_state in phase_states)
+		if(state == phase_state.phase)
+			return phase_states[phase_state] * volume
+	return FALSE
+
 ///Gets the current ratio of the specified phase (between 0 and 1)
 ///Arguments: phase - the define state (i.e. GAS, LIQUID, SOLID)
 /datum/reagent/proc/get_phase_ratio(state)

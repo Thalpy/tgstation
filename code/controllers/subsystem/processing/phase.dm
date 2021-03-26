@@ -1,6 +1,6 @@
 PROCESSING_SUBSYSTEM_DEF(phase)
 	name = "Phase"
-	init_order = INIT_ORDER_REAGENTS
+	init_order = INIT_ORDER_PHASE
 	priority = FIRE_PRIORITY_REAGENTS
 	wait = 1 SECONDS
 	flags = SS_KEEP_TIMING
