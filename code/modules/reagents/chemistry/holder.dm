@@ -1007,7 +1007,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 					qdel(equilibrium)
 				else
 					//Adding is done in new(), deletion is in qdel
-					equilibrium.reaction.on_reaction(equilibrium, src, equilibrium.multiplier)
+					equilibrium.reaction.on_reaction(src, equilibrium, equilibrium.multiplier)
 					equilibrium.react_timestep(1)//Get an initial step going so there's not a delay between setup and start - DO NOT ADD THIS TO equilibrium.NEW()
 
 	if(LAZYLEN(reaction_list))
@@ -1075,6 +1075,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 * * mix_message - the associated mix message of a reaction
 */
 /datum/reagents/proc/end_reaction(datum/equilibrium/equilibrium)
+	equilibrium.reaction.reaction_finish(src, equilibrium, equilibrium.reacted_vol)
 	if(!equilibrium.holder || !equilibrium.reaction) //Somehow I'm getting empty equilibrium. This is here to handle them
 		LAZYREMOVE(reaction_list, equilibrium)
 		qdel(equilibrium)
@@ -1083,7 +1084,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	if(equilibrium.holder != src) //When called from Destroy() eqs are nulled in smoke. This is very strange. This is probably causing it to spam smoke because of the runtime interupting the removal.
 		stack_trace("The equilibrium datum currently processing in this reagents datum had a desynced holder to the ending reaction. src holder:[my_atom] | equilibrium holder:[equilibrium.holder.my_atom] || src type:[my_atom.type] | equilibrium holder:[equilibrium.holder.my_atom.type]")
 		LAZYREMOVE(reaction_list, equilibrium)
-	equilibrium.reaction.reaction_finish(src, equilibrium.reacted_vol)
+
 	var/reaction_message = equilibrium.reaction.mix_message
 	if(equilibrium.reaction.mix_sound)
 		playsound(get_turf(my_atom), equilibrium.reaction.mix_sound, 80, TRUE)
@@ -1242,7 +1243,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 				extract.name = "used slime extract"
 				extract.desc = "This extract has been used up."
 
-	selected_reaction.on_reaction(null, src, multiplier)
+	selected_reaction.on_reaction(src, null, multiplier)
 
 ///Possibly remove - see if multiple instant reactions is okay (Though, this "sorts" reactions by temp decending)
 ///Presently unused

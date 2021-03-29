@@ -108,6 +108,7 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	///The amount a robot will pay for a glass of this (20 units but can be higher if you pour more, be frugal!)
 	var/glass_price
 
+
 /datum/reagent/New()
 	SHOULD_CALL_PARENT(TRUE)
 	. = ..()
@@ -126,6 +127,8 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 		//phase_states = null
 	if(glass_price)
 		AddElement(/datum/element/venue_price, glass_price)
+	if(!mass)
+		mass = rand(10, 800)
 
 
 /datum/reagent/Destroy() // This should only be called by the holder, so it's already handled clearing its references
