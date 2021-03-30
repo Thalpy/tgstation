@@ -612,6 +612,8 @@
 #define COMSIG_BODYPART_GAUZED "bodypart_gauzed" // from /obj/item/bodypart/proc/apply_gauze(/obj/item/stack/gauze)
 #define COMSIG_BODYPART_GAUZE_DESTROYED "bodypart_degauzed" // from [/obj/item/bodypart/proc/seep_gauze] when it runs out of absorption
 
+///from base of /mob/living/carbon/proc/breathe() when the mob takes a breath from a turf: (mob/living/carbon/carby, delta_time)
+#define COMSIG_LIFE_BREATHE_TURF "carbon_breathe_turf"
 ///from base of mob/living/carbon/soundbang_act(): (list(intensity))
 #define COMSIG_CARBON_SOUNDBANG "carbon_soundbang"
 ///from /item/organ/proc/Insert() (/obj/item/organ/)

@@ -22,12 +22,15 @@
 	var/purity_modifier = 1
 	///The UI color of this phase
 	var/color
+	///The calculation type for determining the phase - default is linear
+	var/datum/phase_calc/calculation_method = /datum/phase_calc/linear/mass_effect
+
+/datum/reagent_phase/New()
+	. = ..()
+	calulcation_method = new calulcation_method(phase)
 
 ///called for each update that this phase has a volume presence
 /datum/reagent_phase/proc/tick(delta_time)
-
-///Calculates how much of this current phase we should be aiming to convert into
-/datum/reagent_phase/proc/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 
 ///When this current phase has a certain volume removed from it
 /datum/reagent_phase/proc/transition_from(datum/reagent/reagent, amount, target_phase)
@@ -35,8 +38,13 @@
 ///When this current phase has a certain volume added to it
 /datum/reagent_phase/proc/transition_to(datum/reagent/reagent, amount, target_phase)
 
+///Calculates how much of this current phase we should be aiming to convert into
+/datum/reagent_phase/proc/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+	calculation_method.determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+
 ///Used to calculate the GUI phase graph output of the phases x value
 /datum/reagent_phase/proc/get_graph_coords()
+	calculation_method.get_graph_coords()
 
 //Default phase gas
 /datum/reagent_phase/gas
@@ -44,13 +52,14 @@
 	density = 0.5
 	reaction_speed_modifier = REAGENT_GAS_DEFAULT_SPEED
 	color = "#5fcffc"
+	calculation_method = null //This is the default so we want to know if we're accidentally calculating
 
 /datum/reagent_phase/gas/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	reaction_speed_modifier = clamp(pressure/100 * REAGENT_GAS_DEFAULT_SPEED, 0.2, 0.9)
 	return 1
 
 /datum/reagent_phase/gas/tick(datum/reagent/reagent, delta_time)
-	dissipate(reagent, reagent.mass * delta_time)
+	dissipate(reagent, reagent.mass * delta_time, delta_time)
 
 ///liquid to gas
 /datum/reagent_phase/gas/transition_from(datum/reagent/reagent, amount, delta_time)
@@ -64,7 +73,7 @@
 /datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount, delta_time)
 	if(reagent.holder.flags & SEALED) // Don't dissipate if we're sealed
 		return
-	amount = max((reagent.volume * reagent.get_phase_ratio(phase)) - amount, 0)//Don't remove more than we have
+	amount = max(get_phase_volume - amount, 0)//Don't remove more than we have - probably doesn't work, move this to remove_reagent
 	if(!amount)
 		return
 	//Move below to remove_reagent() FERMI_TODO
@@ -74,56 +83,24 @@
 	if(reagent)
 		reagent.check_phase_ratio()
 
-/datum/reagent_phase/linear
-	///The m (gradient/slope) aka equation of a line (y = mx+c): pressure = m * temperature + c See the readme and use the calculator
-	var/gradient
-	///same as m, except it the c (constant) part of y = mx+c See the readme and use the calculator
-	var/constant
-	///The range around the phase line where transitions are deterministic based off linear decay (See readme)
-	var/range
-
-/datum/reagent_phase/linear/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
-	var/required_pressure = (gradient * temperature) + (constant - range)
-	if(pressure < required_pressure)
-		return 0
-	var/saturation_pressure = (gradient * temperature) + (constant + range)
-	var/ratio = (pressure - required_pressure) / (saturation_pressure - required_pressure)
-	return  clamp(ratio, 0, 1)
-
-/datum/reagent_phase/linear/get_graph_coords()
-	var/x1 = -(constant+range)/gradient
-	var/y1 = 0
-	if(x1 < 0)
-		x1 = 0
-		y1 = gradient + constant + range
-	var/x2 = 1100
-	var/y2 = (gradient * 1100) + constant + range
-	if(y2 > 600)
-		x2 = (600-(constant + range))/gradient
-		y2 = 600
-	return list("x1" = x1, "x2" = x2, "y1" = y1, "y2" = y2, "range" = range*2, "color" = color)
 
 ///Default liquid
-/datum/reagent_phase/linear/liquid
+/datum/reagent_phase/liquid
 	phase = LIQUID
-	gradient = 1
-	constant = 0.03
-	range = 25
 	density = 1
 	color = "#3dbe47"
+	calculation_method = /datum/phase_calc/linear/mass_effect/liquid
 
 ///Default solid
-/datum/reagent_phase/linear/solid
+/datum/reagent_phase/solid
 	phase = SOLID
-	gradient = 0.12
-	constant = -2.4
-	range = 50
 	reaction_speed_modifier = 0.55
 	density = 1.5
 	color = "#e4f582"
+	calculation_method = /datum/phase_calc/linear/mass_effect/solid
 
 ///solid to powder (powder cannot become solid without turning into a liquid/gas first)
-/datum/reagent_phase/linear/solid/proc/grind(datum/reagent/reagent, amount)
+/datum/reagent_phase/solid/proc/grind(datum/reagent/reagent, amount)
 	if(!reagent.get_phase_ratio(phase))
 		return FALSE
 	reagent.set_phase_percent(POWDER, reagent.get_phase_ratio(phase))
@@ -131,24 +108,25 @@
 	reagent.check_phase_ratio()
 
 ///Ground powder
-/datum/reagent_phase/linear/solid/powder
+/datum/reagent_phase/solid/powder
 	phase = POWDER
 	reaction_speed_modifier = 0.95
 	density = 1.25
 	color = "#e78c4f"
+	calculation_method = null //uses solid - we want this to crash if it tries to calculate otherwise
 
-/datum/reagent_phase/linear/solid/powder/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+/datum/reagent_phase/solid/powder/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	if(reagent.phase_states[src] == 0) //Save some calculations - we can never generate powder this way
 		return 0
 	//Make sure we're synced with our solid phase
-	var/datum/reagent_phase/linear/solid = reagent.get_phase(SOLID)
-	gradient = solid.gradient
-	constant = solid.constant
-	. = ..()
+	var/datum/reagent_phase/solid = reagent.get_phase(SOLID)
+	. = solid.determine_phase_percent(reagent, temperature, pressure)
+	//calculation_method.gradient = solid.calculation_method.gradient
+	//calculation_method.constant = solid.calculation_method.constant
 	return min(., reagent.phase_states[src])//So we can only remain the same, or go lower
 
 ///We don't want this to appear on our graph
-/datum/reagent_phase/linear/solid/powder/get_graph_coords()
+/datum/reagent_phase/solid/powder/get_graph_coords()
 	return null
 
 ///Plasma - called IONISED because plasma is everywhere in the codebase
@@ -160,6 +138,7 @@
 	///The chemical reaction that this reagent is MADE from - i.e. we're going backwards
 	var/datum/chemical_reaction/reverse_reaction
 	color = "#dd8bfd"
+	calculation_method = null //Not in yet
 
 //FERMI_TODO
 /datum/reagent_phase/plasma/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
@@ -173,64 +152,147 @@
 	holder.adjust_thermal_energy(100, 0, CHEMICAL_MAXIMUM_TEMPERATURE)
 */
 
+/*		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~		 /
+		~~~~	    Phase calcs		 ~~~~
+/		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~		*/
+
+/datum/phase_calc/linear
+	///The m (gradient/slope) aka equation of a line (y = mx+c): pressure = m * temperature + c See the readme and use the calculator
+	var/gradient
+	///same as m, except it the c (constant) part of y = mx+c See the readme and use the calculator
+	var/constant
+	///The range around the phase line where transitions are deterministic based off linear decay (See readme)
+	var/range
+
+/datum/phase_calc/New(_gradient, _constant, _range)
+	. = ..()
+	gradient = _gradient
+	constant = _constant
+	range = _range
+
+/datum/phase_calc/proc/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+
+/datum/phase_calc/proc/get_graph_coords()
+
+/datum/phase_calc/linear/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+	var/required_pressure = (gradient * temperature) + (constant - range)
+	if(pressure < required_pressure)
+		return 0
+	var/saturation_pressure = (gradient * temperature) + (constant + range)
+	var/ratio = (pressure - required_pressure) / (saturation_pressure - required_pressure)
+	return  clamp(ratio, 0, 1)
+
+/datum/phase_calc/linear/get_graph_coords()
+	var/x1 = -(constant+range)/gradient
+	var/y1 = 0
+	if(x1 < 0)
+		x1 = 0
+		y1 = gradient + constant + range
+	var/x2 = 1100
+	var/y2 = (gradient * 1100) + constant + range
+	if(y2 > 600)
+		x2 = (600-(constant + range))/gradient
+		y2 = 600
+	return list("x1" = x1, "x2" = x2, "y1" = y1, "y2" = y2, "range" = range*2, "color" = color)
+
 /*		~~~		The mass calculated/autofill methods		~~~ 		*/
 //This is messy and bad but I can't figure out a better way of doing it!
 
-/datum/reagent_phase/linear/liquid/mass_effect
-	//These are autogenerated/work off mass and ph instead
-	gradient = null
-	constant = null
-	range = 20
+/datum/phase_calc/linear/mass_effect
+	//!!! Vars are autogenerated/work off mass and ph instead - overwriting the previous type !!!
+	//The factors are fudge numbers I made up and have no realistic basis - check the mapping tool to make sense of them
+	///The factor a for gradient
+	var/g_factor_a
+	///The factor b for gradient
+	var/g_factor_b
+	///The factor a for constant
+	var/c_factor_a
+	///The factor b for constant
+	var/c_factor_b
 
-/datum/reagent_phase/linear/liquid/mass_effect/proc/generate_gradient(datum/reagent/reagent)
-	return (reagent.mass ** ((reagent.ph - 7) * 0.01)) * 0.15
+/datum/phase_calc/linear/mass_effect/proc/generate_gradient(datum/reagent/reagent)
+	return (reagent.mass ** ((reagent.ph - 7) * g_factor_a)) * g_factor_b
 
-/datum/reagent_phase/linear/liquid/mass_effect/proc/generate_constant(datum/reagent/reagent)
-	return -(gradient * (-80 - (reagent.mass * 0.2)))
+/datum/phase_calc/linear/mass_effect/proc/generate_constant(datum/reagent/reagent)
+	return -(gradient * (c_factor_a - (reagent.mass * c_factor_b)))
 
-/datum/reagent_phase/linear/solid/mass_effect
+/datum/phase_calc/linear/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+	gradient = generate_gradient(reagent)
+	constant = generate_constant(reagent)
+	return ..()
+
+/datum/phase_calc/linear/mass_effect/get_graph_coords(datum/reagent/reagent)
+	gradient = generate_gradient(reagent)
+	constant = generate_constant(reagent)
+	return ..()
+
+//These are the types of modifiers used for different profiles
+/datum/phase_calc/linear/mass_effect/solid
+		g_factor_a = 0.01
+		g_factor_b = 1
+		c_factor_a = 100
+		c_factor_b = 0.1
+
+/datum/phase_calc/linear/mass_effect/liquid
+		g_factor_a = 0.01
+		g_factor_b = 0.15
+		c_factor_a = -80
+		c_factor_b = 0.2
+
+
+		/* - this is the liquid setting for a forced
+		if(GAS)
+			g_factor_a = 0.005
+			g_factor_b = 0.2
+			c_factor_a = -450
+			c_factor_b = 0.2
+		*/
+
+/*
+/datum/reagent_phase/solid/mass_effect
 	//These are autogenerated/work off mass and ph instead
 	gradient = null
 	constant = null
 	range = 30
 
-/datum/reagent_phase/linear/solid/mass_effect/proc/generate_gradient(datum/reagent/reagent)
+/datum/reagent_phase/solid/mass_effect/proc/generate_gradient(datum/reagent/reagent)
 	return (reagent.mass ** ((reagent.ph - 7) * 0.01)) * 1
 
-/datum/reagent_phase/linear/solid/mass_effect/proc/generate_constant(datum/reagent/reagent)
+/datum/reagent_phase/solid/mass_effect/proc/generate_constant(datum/reagent/reagent)
 	return -(gradient * (100 + (reagent.mass * 0.1)))
 
-/datum/reagent_phase/linear/liquid/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+/datum/phase_calc/linear/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	//These will be overwritten everytime this is called - but that should be fine (so we have less objects about)
 	gradient = generate_gradient(reagent)
 	constant = generate_constant(reagent)
 	return ..()
 
-/datum/reagent_phase/linear/liquid/mass_effect/get_graph_coords(datum/reagent/reagent)
+/datum/phase_calc/linear/mass_effect/get_graph_coords(datum/reagent/reagent)
 	gradient = generate_gradient(reagent)
 	constant = generate_constant(reagent)
 	return ..()
 
-/datum/reagent_phase/linear/solid/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+/datum/reagent_phase/solid/mass_effect/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	gradient = generate_gradient(reagent)
 	constant = generate_constant(reagent)
 	return ..()
 
-/datum/reagent_phase/linear/solid/mass_effect/get_graph_coords(datum/reagent/reagent)
+/datum/reagent_phase/solid/mass_effect/get_graph_coords(datum/reagent/reagent)
 	gradient = generate_gradient(reagent)
 	constant = generate_constant(reagent)
 	return ..()
 
 //These are to create gasses at room temp
-/datum/reagent_phase/linear/liquid/mass_effect/gas/generate_gradient(datum/reagent/reagent)
+/datum/phase_calc/linear/mass_effect/gas/generate_gradient(datum/reagent/reagent)
 	return (reagent.mass ** ((reagent.ph - 7) * 0.005)) * 0.2
 
-/datum/reagent_phase/linear/liquid/mass_effect/gas/generate_constant(datum/reagent/reagent)
+/datum/phase_calc/linear/mass_effect/gas/generate_constant(datum/reagent/reagent)
 	return -(gradient * (-450 - (reagent.mass * 0.2)))
 
 
-/datum/reagent_phase/linear/solid/mass_effect/gas/generate_gradient(datum/reagent/reagent)
+/datum/reagent_phase/solid/mass_effect/gas/generate_gradient(datum/reagent/reagent)
 	return (reagent.mass ** ((reagent.ph - 7) * 0.01)) * 1.5
 
-/datum/reagent_phase/linear/solid/mass_effect/gas/generate_constant(datum/reagent/reagent)
+/datum/reagent_phase/solid/mass_effect/gas/generate_constant(datum/reagent/reagent)
 	return -(gradient * (reagent.mass * 0.1))
+*/

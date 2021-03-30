@@ -116,6 +116,8 @@
 					breath_moles = environment.total_moles()*BREATH_PERCENTAGE
 
 				breath = loc.remove_air(breath_moles)
+
+			SEND_SIGNAL(src, COMSIG_CARBON_BREATHE_TURF, src, delta_time)
 		else //Breathe from loc as obj again
 			if(istype(loc, /obj/))
 				var/obj/loc_as_obj = loc

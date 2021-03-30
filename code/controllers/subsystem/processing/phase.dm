@@ -1,3 +1,5 @@
+//This handles the reagents datum phases - i.e. the chemicals themselves transitioning.
+
 PROCESSING_SUBSYSTEM_DEF(phase)
 	name = "Phase"
 	init_order = INIT_ORDER_PHASE
@@ -51,6 +53,15 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 			holder.update_pressure()
 			return
 
+///datum/controller/subsystem/processing/phase/proc/find_phase_profiles(var/datum/reagent/reagent)
+
+
+
+var/object_list = list()
+		for(var/item in phase_states)
+			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
+			object_list[phase_lookup] = phase_states[item] ///OBJECT = percentage
+		phase_states = object_list
 
 /*
 /datum/controller/subsystem/processing/phase/proc/start_processing(datum/reagents/reagents, datum/reagent/reagent)

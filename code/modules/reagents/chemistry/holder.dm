@@ -156,7 +156,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			reagent.ignite_temperature = 300 + (reagent.mass * 10)
 
 		///Now we convert the associated typepaths to live reference lookup objects
-		/*
+		/* done in reagents.dm
 		var/object_list = list()
 		for(var/item in reagent.phase_states)
 			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
