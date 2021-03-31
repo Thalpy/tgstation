@@ -463,7 +463,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			reagent_list -= reagent
 			LAZYREMOVE(previous_reagent_list, reagent.type)
 			qdel(reagent)
-			update_total()
+			//update_total() - hopefully isn't needed here
 			SEND_SIGNAL(src, COMSIG_REAGENTS_DEL_REAGENT, reagent)
 	return TRUE
 
@@ -914,6 +914,11 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			return FALSE
 
 	var/list/cached_reagents = reagent_list
+	//Detect reagents in the air
+	if(!(flags & SEALED))
+	var/datum/gas_mixture/gas_mix = my_atom.return_air()
+
+
 	var/list/cached_reactions = GLOB.chemical_reactions_list
 	var/datum/cached_my_atom = my_atom
 	failed_but_capable_reactions = null
@@ -1286,6 +1291,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	update_pressure()
 	var/needs_processing = FALSE
 	for(var/datum/reagent/reagent as anything in reagent_list)
+		if(QDELETED(reagent))
+			continue
 		needs_processing = reagent.check_phase_flux()
 		if(needs_processing)
 			START_PROCESSING(SSphase, reagent)
@@ -1322,8 +1329,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			//How much "raw" molar volume we have before normalising it
 			sum_moles += log(((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density), 10)
 		//pV = nRT except I fudge numbers and ideology is gone
-		//1atm = 101 kPa, but lets just make it simple and make it 100
-		sum_pressure += (sum_moles * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume * active_states)
+		sum_pressure += (sum_moles * chem_temp)/(reagent.volume * active_states)
 	sum_pressure /= reagent_list.len
 	//If we're in a holder that isn't sealed
 
@@ -1344,7 +1350,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	var/datum/gas_mixture/gas_mix = my_atom.return_air()
 	var/total_moles = gas_mix.total_moles()
 	for(var/gas_id as anything in gas_mix.gases)
-		add_reagent(GLOB.gas_to_reagent[gas_id], (gas_mix[gas_id][MOLES] / total_moles) * empty_volume, gas_mix.temperature)
+		add_reagent(GLOB.gas_to_reagent[gas_id], (gas_mix.gases[gas_id][MOLES] / total_moles) * empty_volume, gas_mix.temperature)
 	gas_mix.remove(empty_volume)
 	flags |= SEALED
 
@@ -1617,6 +1623,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		return
 	var/total_ph = 0
 	for(var/datum/reagent/reagent as anything in reagent_list)
+		if(QDELETED)
 		total_ph += (reagent.ph * reagent.volume)
 	//Keep limited
 	ph = clamp(total_ph/total_volume, 0, 14)

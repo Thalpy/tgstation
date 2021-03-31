@@ -57,8 +57,9 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 			return
 
 	//Finally lets make sure we call the end procs when we're done everything
-	SEND_SIGNAL(holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES) //Forces physical phases (mists, liquids and solids) to update
-	holder.update_pressure()
+	if(holder)
+		SEND_SIGNAL(holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES) //Forces physical phases (mists, liquids and solids) to update
+		holder.update_pressure()
 
 ///datum/controller/subsystem/processing/phase/proc/find_phase_profiles(var/datum/reagent/reagent)
 

@@ -27,10 +27,11 @@
 
 /datum/reagent_phase/New()
 	. = ..()
-	calculation_method = new calculation_method(phase)
+	if(calculation_method)
+		calculation_method = new calculation_method(phase)
 
 ///called for each update that this phase has a volume presence
-/datum/reagent_phase/proc/tick(delta_time)
+/datum/reagent_phase/proc/tick((datum/reagent/reagent, delta_time)
 
 ///When this current phase has a certain volume removed from it
 /datum/reagent_phase/proc/transition_from(datum/reagent/reagent, amount, target_phase)
@@ -44,10 +45,10 @@
 
 ///Used to calculate the GUI phase graph output of the phases x value
 /datum/reagent_phase/proc/get_graph_coords(datum/reagent/reagent)
-	. = list()
-	. = calculation_method.get_graph_coords()
-	.["color"] = color
-	return .
+	var/list/profile = list()
+	profile = calculation_method.get_graph_coords(reagent)
+	profile["color"] = color
+	return profile
 
 //Default phase gas
 /datum/reagent_phase/gas
@@ -60,6 +61,10 @@
 /datum/reagent_phase/gas/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	reaction_speed_modifier = clamp(pressure/100 * REAGENT_GAS_DEFAULT_SPEED, 0.2, 0.9)
 	return 1
+
+//FERMI_TODO - return full size
+/datum/reagent_phase/gas/get_graph_coords(datum/reagent/reagent)
+	return
 
 /datum/reagent_phase/gas/tick(datum/reagent/reagent, delta_time)
 	dissipate(reagent, reagent.mass * delta_time, delta_time)
@@ -75,16 +80,17 @@
 ///If we're a gas and we're in an unsealed chamber
 /datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount, delta_time)
 	if(reagent.holder.flags & SEALED) // Don't dissipate if we're sealed
-		return
+		return FALSE
 	amount = max(reagent.get_phase_volume(GAS) - amount, 0)//Don't remove more than we have - probably doesn't work, move this to remove_reagent
 	if(!amount)
-		return
+		return FALSE
 	//Move below to remove_reagent() FERMI_TODO
 	//reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_ratio(phase)) - amount) / (reagent.volume - amount)
 	reagent.diffuse(amount * delta_time)
 	reagent.holder.remove_reagent(reagent.type, amount, phase = phase)
 	if(reagent)
 		reagent.check_phase_ratio()
+	return TRUE
 
 
 ///Default liquid
@@ -147,6 +153,9 @@
 /datum/reagent_phase/plasma/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	return 0
 
+/datum/reagent_phase/plasma/get_graph_coords(datum/reagent/reagent)
+	return
+
 /* FERMI_TODO
 /datum/reagent_phase/plasma/tick(datum/reagent/reagent, delta_time)
 	if(!reverse_reaction)
@@ -172,7 +181,7 @@
 	///same as m, except it the c (constant) part of y = mx+c See the readme and use the calculator
 	var/constant
 	///The range around the phase line where transitions are deterministic based off linear decay (See readme)
-	var/range
+	var/range = 25
 
 /datum/phase_calc/linear/New(_gradient, _constant, _range)
 	. = ..()
@@ -181,7 +190,15 @@
 	range = _range
 
 /datum/phase_calc/linear/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
-	var/required_pressure = (gradient * temperature) + (constant - range)
+	//The min required pressure
+	var/required_pressure
+	if(!range) //if we have no range - then it's a true/false check
+		required_pressure = (gradient * temperature) + constant
+		if(pressure < required_pressure)
+			return 0
+		return 1
+	//Otherwise we check our ranges
+	required_pressure = (gradient * temperature) + (constant - range)
 	if(pressure < required_pressure)
 		return 0
 	var/saturation_pressure = (gradient * temperature) + (constant + range)
@@ -199,7 +216,26 @@
 	if(y2 > 600)
 		x2 = (600-(constant + range))/gradient
 		y2 = 600
-	return list("x1" = x1, "x2" = x2, "y1" = y1, "y2" = y2, "range" = range*2)
+	return list("x1" = x1, "x2" = x2, "y1" = y1, "y2" = y2, "range" = range*2, "type" = "linear")
+
+///A big if else check square
+/datum/phase_calc/square
+	///Bottom left coords - x is temp, y is pressure in whole values
+	var/x1
+	var/y1
+	///Top right coords
+	var/x2
+	var/y2
+	///The area around the box
+	var/range = 15
+
+/datum/phase_calc/square/get_graph_coords(datum/reagent/reagent)
+	return list("x1" = x1, "x2" = x2, "y1" = y1, "y2" = y2, "range" = range, "type" = "square")
+
+/datum/phase_calc/square/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
+	if(temperature > x1 && temperature < x2)
+		if(pressure > y1 && pressure < y2)
+			return 1
 
 /*		~~~		The mass calculated/autofill method 		~~~ 		*/
 
@@ -233,16 +269,20 @@
 
 //These are the types of modifiers used for different profiles
 /datum/phase_calc/linear/mass_effect/solid
-		g_factor_a = 0.01
-		g_factor_b = 1
-		c_factor_a = 100
-		c_factor_b = 0.1
+	g_factor_a = 0.01
+	g_factor_b = 1
+	c_factor_a = 100
+	c_factor_b = 0.1
+	range = 30
 
 /datum/phase_calc/linear/mass_effect/liquid
-		g_factor_a = 0.01
-		g_factor_b = 0.15
-		c_factor_a = -80
-		c_factor_b = 0.2
+	g_factor_a = 0.01
+	g_factor_b = 0.15
+	c_factor_a = -80
+	c_factor_b = 0.2
+	range = 20
+
+
 
 
 		/* - this is the liquid setting for a forced

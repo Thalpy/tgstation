@@ -127,8 +127,6 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 		//phase_states = null
 	if(glass_price)
 		AddElement(/datum/element/venue_price, glass_price)
-	if(!mass)
-		mass = rand(10, 800)
 
 
 /datum/reagent/Destroy() // This should only be called by the holder, so it's already handled clearing its references
@@ -321,6 +319,7 @@ Primarily used in reagents/reaction_agents
 ///Processes the phases of each reagent in the holder
 /datum/reagent/process(delta_time)
 	var/needs_update = adjust_phase_targets(delta_time)
+	needs_update += phase_tick(delta_time)
 	if(!needs_update)
 		return PROCESS_KILL
 
@@ -448,6 +447,13 @@ Primarily used in reagents/reaction_agents
 		phase_states[phase] = round(ratio, CHEMICAL_QUANTISATION_LEVEL)
 	check_phase_ratio(debug = TRUE)
 	STOP_PROCESSING(SSphase, src)
+
+///Calls the tick proc on each of the phases - so that their extra effects work
+/datum/reagent/proc/phase_tick(delta_time)
+	var/needs_update = FALSE
+	for(var/datum/reagent_phase/phase as anything in phase_states)
+		needs_update += phase.tick(src, delta_time)
+	return needs_update
 
 ///Gets the phase datum from a state
 /datum/reagent/proc/get_phase(state)
