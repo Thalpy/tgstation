@@ -41,28 +41,35 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 			//We do this first because we want to update after we've done all the reagents in the holder
 			if(holder) //but this means we have a null holder on start
 				holder.update_pressure()
+				SEND_SIGNAL(holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES) //Forces physical phases (mists, liquids and solids) to update
 			holder = reagent.holder
 
-		current_run.len--
 		//If holder is processing - then we don't need to
-		if(!(holder.datum_flags & DF_ISPROCESSING))
+		if(!(reagent.holder.datum_flags & DF_ISPROCESSING))
 			if(reagent.process(delta_realtime) == PROCESS_KILL) //we are realtime
 				// fully stop so that a future START_PROCESSING will work
 				STOP_PROCESSING(src, reagent)
+
+		current_run.len--
 		if (MC_TICK_CHECK)
+			SEND_SIGNAL(holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES) //Forces physical phases (mists, liquids and solids) to update
 			holder.update_pressure()
 			return
+
+	//Finally lets make sure we call the end procs when we're done everything
+	SEND_SIGNAL(holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES) //Forces physical phases (mists, liquids and solids) to update
+	holder.update_pressure()
 
 ///datum/controller/subsystem/processing/phase/proc/find_phase_profiles(var/datum/reagent/reagent)
 
 
-
-var/object_list = list()
+/*
+	var/object_list = list()
 		for(var/item in phase_states)
 			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
 			object_list[phase_lookup] = phase_states[item] ///OBJECT = percentage
 		phase_states = object_list
-
+*/
 /*
 /datum/controller/subsystem/processing/phase/proc/start_processing(datum/reagents/reagents, datum/reagent/reagent)
 	if(reagent.datum_flags & DF_ISPROCESSING)

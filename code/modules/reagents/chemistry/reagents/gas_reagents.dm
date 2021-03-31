@@ -12,7 +12,7 @@
 	return .
 
 /datum/reagent/gas/diffuse(amount, delta_time)
-	. = ..()
+	//Do NOT call parent
 	var/turf/open/exposed_turf = get_turf(holder)
 	if(istype(exposed_turf))
 		var/temp = holder.chem_temp

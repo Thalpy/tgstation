@@ -250,10 +250,20 @@
 #define COMSIG_REAGENTS_EXPOSE_TURF "reagents_expose_turf"
 ///from base of [/datum/component/personal_crafting/proc/del_reqs]: ()
 #define COMSIG_REAGENTS_CRAFTING_PING "reagents_crafting_ping"
+///from base of [/datum/controller/subsystem/processing/phase/fire]: ()
+#define COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES "reagents_physical_phase_state_update"
+
+///from base of [/datum/reagent/proc/diffuse]: (amount)
+#define COMSIG_REAGENT_DIFFUSE "reagent_diffuse"
+	///Prevents the diffusion from happening if returned DOES NOT WORK FOR GASSES i.e. reagent/gas subtypes!! This is intentional because we don't want gas reagents to become mists
+	#define COMSIG_REAGENT_BLOCK_DIFFUSE (1<<0)
+
 
 //Phase states and phase related procs
 ///from base of add this later because confuse code
 #define COMSIG_PHASE_STATE_DELETE "phase_state_delete"
+///from base of [datum/gas_phase/New]: (color)
+#define COMSIG_PHASE_CHANGE_COLOR "phase_change_color"
 ///from base of [datum/reagent/adjust_phase_targets]: (change_volume)
 #define COMSIG_PHASE_CHANGE_FROM_GAS "phase_from_gas"
 ///from base of [datum/reagent/adjust_phase_targets]: (change_volume)
@@ -597,6 +607,8 @@
 #define COMSIG_CARBON_HUGGED "carbon_hugged"
 ///When a carbon mob is headpatted, this is called on the carbon that is headpatted. (mob/living/headpatter)
 #define COMSIG_CARBON_HEADPAT "carbon_headpatted"
+///When a carbon breathes air from a turf
+#define COMSIG_CARBON_BREATHE_TURF "carbon_breathe"
 
 ///When a carbon slips. Called on /turf/open/handle_slip()
 #define COMSIG_ON_CARBON_SLIP "carbon_slip"

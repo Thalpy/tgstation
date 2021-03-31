@@ -76,15 +76,16 @@
 		to_chat(user, "<span class='notice'>You take out the solids inside of the [src].</span>")
 
 /obj/item/reagent_containers/attackby(obj/item/item, mob/user, params)
-	if(istype(item, /obj/item/stack/sheet/plastic))
-		var/obj/item/stack/sheet/plastic/sealant = item
-		if(!sealant.use)
-			return ..()
-		reagents.seal()
+	if(!istype(item, /obj/item/stack/sheet/plastic))
+		return
+	var/obj/item/stack/sheet/plastic/sealant = item
+	if(!sealant.use())
+		return ..()
+	reagents.seal()
 
 /// Tries to splash the target. Used on both right-click and normal click when in combat mode.
 /obj/item/reagent_containers/proc/try_splash(mob/user, atom/target)
-	if (!spillable || reagents.seal)
+	if (!spillable || reagents.seal())
 		return FALSE
 
 	if (!reagents?.total_volume)

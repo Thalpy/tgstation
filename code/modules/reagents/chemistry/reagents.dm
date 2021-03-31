@@ -305,7 +305,17 @@ Primarily used in reagents/reaction_agents
  * arguments
  * * Amount: how much was diffused
  */
-/datum/reagent/proc/diffuse(amount, delta_time)
+/datum/reagent/proc/diffuse(amount)
+	if(SEND_SIGNAL(src, COMSIG_REAGENT_DIFFUSE, amount) & COMSIG_REAGENT_BLOCK_DIFFUSE)
+		return
+	var/turf/source_turf = get_turf(holder.my_atom)
+	if(!isopenturf(source_turf))
+		return
+	var/atom/mist/misty = locate() in source_turf
+	if(!misty)
+		new /datum/gas_phase(src, amount, holder.my_atom)
+	misty.phase_controller.center_holder.add_reagent(type, volume, reagtemp = holder.chem_temp, added_purity = purity, added_ph = ph)
+	holder.remove_reagent(type, amount)
 
 ///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this from it's holder
 ///Processes the phases of each reagent in the holder
