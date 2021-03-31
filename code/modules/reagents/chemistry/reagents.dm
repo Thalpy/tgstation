@@ -418,7 +418,7 @@ Primarily used in reagents/reaction_agents
 	if(!negative_budget.len && positive_budget.len)
 		message_admins(debug)
 		stack_trace("Reagent [type] is attempting to create matter from nothing! (positive changes with nothing to take it from)")
-		check_phase_ratio(debug)
+		//check_phase_ratio(debug)
 		return
 	if(!negative_budget.len || !positive_budget.len) //No changes!
 		return FALSE

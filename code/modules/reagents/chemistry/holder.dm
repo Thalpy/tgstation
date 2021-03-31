@@ -1365,14 +1365,14 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 				continue
 			active_states++
 			//How much "raw" molar volume we have before normalising it
-			sum_moles += log(((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density), 10)
+			sum_moles += log(10, ((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density))
 		//pV = nRT except I fudge numbers and ideology is gone
-		sum_pressure += (sum_moles * chem_temp * 0.1)/(reagent.volume * active_states)
+		sum_pressure += (sum_moles * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume)
 	sum_pressure /= reagent_list.len
 	sum_pressure *= total_volume / maximum_volume
 	//If we're in a holder that isn't sealed
 	//Update our pressure
-	pressure = sum_pressure * 1000
+	pressure = sum_pressure
 	//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
 	//If we're over the pressure value of the holder - i.e. are we gonna blow?
 	//FERMI_TODO

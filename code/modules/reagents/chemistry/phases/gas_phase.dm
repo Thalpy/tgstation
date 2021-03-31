@@ -161,7 +161,7 @@
 		remove_from_interface(target_mist)
 	return created_new
 
-/datum/gas_phase/proc/remove_cell(num_cells)
+/datum/gas_phase/proc/remove_cell(num_cells) //This isn't working!
 	var/max_dist = 0
 	var/obj/mist/target_mist
 	for(var/obj/mist/misty in interface_mists)
