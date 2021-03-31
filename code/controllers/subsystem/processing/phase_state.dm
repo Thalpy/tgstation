@@ -2,12 +2,12 @@
 ///This draws from induvidual reagent phases however
 
 PROCESSING_SUBSYSTEM_DEF(phase_states)
-	name = "Reagents"
+	name = "Phase_states"
 	init_order = INIT_ORDER_PHASE_STATES
 	priority = FIRE_PRIORITY_REAGENTS
-	wait = 0.25 SECONDS
-	flags = SS_KEEP_TIMING
+	wait = 2 SECONDS
+	flags = SS_NO_FIRE| SS_NO_INIT
 	runlevels = RUNLEVEL_GAME | RUNLEVEL_POSTGAME
 	///What time was it when we last ticked
-	var/previous_world_time = 0
+	var/gas_states = list()
 

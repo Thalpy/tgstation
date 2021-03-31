@@ -16,12 +16,13 @@
 	var/turf/open/exposed_turf = get_turf(holder)
 	if(istype(exposed_turf))
 		var/temp = holder.chem_temp
-		exposed_turf.atmos_spawn_air("[gas_id]=[amount];TEMP=[temp]")
+		exposed_turf.atmos_spawn_air("[gas_id]=[amount*REAGENT_VOL_TO_GAS_MOLARITY];TEMP=[temp]")
+	holder.remove_reagent(type, amount, phase = GAS)
 
 /datum/reagent/gas/expose_turf(turf/open/exposed_turf, reac_volume)
 	if(istype(exposed_turf))
 		var/temp = holder ? holder.chem_temp : T20C
-		exposed_turf.atmos_spawn_air("[gas_id]=[reac_volume];TEMP=[temp]")
+		exposed_turf.atmos_spawn_air("[gas_id]=[reac_volume*REAGENT_VOL_TO_GAS_MOLARITY];TEMP=[temp]")
 	return ..()
 
 ///Plasma and mindbreaker are toxins and are in toxin_reagents.dm

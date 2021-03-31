@@ -19,10 +19,19 @@
 	///The sum of the volume in the mist - this is cells * capacity
 	//var/sum_volume
 	///The interfacial cells - all cells within the center are considered "stable" so we don't process their movement
-	var/list/atom/mist/interface_mists = list()
+	var/list/obj/mist/interface_mists = list()
 
-/datum/gas_phase/New(datum/reagent/reagent, volume, atom/reagent_source)
+/datum/gas_phase/New(datum/reagent/reagent, volume, atom/reagent_source, turf/location)
 	. = ..()
+	if(!isopenturf(location))
+		stack_trace("Input turf isn't open!")
+		return FALSE
+	if(SSphase_states.gas_states[reagent_source])
+		stack_trace("Attempted to create a phase state that already exists")
+		return FALSE
+	if(volume <= 0.05)
+		stack_trace("Attempted to add a reagent to a gas_phase with a volume less than 0.05")
+		return FALSE
 	center_holder = new /datum/reagents(3000)
 	source = reagent_source
 	center_holder.my_atom = source
@@ -33,6 +42,8 @@
 	//RegisterSignal(center_holder, COMSIG_REAGENTS_REM_REAGENT, .proc/on_remove_reagent)
 	RegisterSignal(source, COMSIG_PARENT_QDELETING, .proc/on_del_source)
 	center_holder.add_reagent(reagent.type, volume) //Does not remove volume from original holder
+	new /obj/mist(location, center_holder, src)
+	SSphase_states.gas_states += list(source = src)
 
 /datum/gas_phase/Destroy(force, ...)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_NEW_REAGENT)
@@ -43,6 +54,7 @@
 	for(var/datum/reagent/reagent as anything in center_holder.reagent_list)
 		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_FROM_GAS) //Clean up signals
 	QDEL_NULL(center_holder)
+	SSphase_states.gas_states -= list(source)
 	..()
 
 ///When we lose our origin atom - we backup to the mist on it's location - if there is none then we default backup to any avalible interface
@@ -53,7 +65,7 @@
 	if(!source_turf)
 		source = pick(interface_mists)
 		return FALSE
-	var/atom/mist/misty = locate() in source_turf
+	var/obj/mist/misty = locate() in source_turf
 	if(misty)
 		source = misty
 		return TRUE
@@ -87,7 +99,7 @@
 
 ///Diffusion creates mist - so we want to stop that!
 /datum/gas_phase/proc/override_reagent_diffusion(volume)
-	center_holder.remove_reagent(type, volume/10)
+	center_holder.remove_reagent(type, volume/5)
 	return COMSIG_REAGENT_BLOCK_DIFFUSE
 
 /datum/gas_phase/proc/on_phase_change_from_gas(datum/reagent/reagent, amount, phase_into)
@@ -122,8 +134,8 @@
 
 /datum/gas_phase/proc/create_new_cell(num_cells)
 	var/min_dist = 999
-	var/atom/mist/target_mist
-	for(var/atom/mist/misty in interface_mists)
+	var/obj/mist/target_mist
+	for(var/obj/mist/misty in interface_mists)
 		var/misty_distance = get_dist(source, misty)
 		if(misty_distance < min_dist)
 			target_mist = misty
@@ -133,12 +145,14 @@
 	//we have a target
 	var/created_new = FALSE
 	for(var/turf/new_turf in target_mist.local_turf.GetAtmosAdjacentTurfs())
-		var/atom/mist/misty_boi = locate() in new_turf //Don't spread smoke where there's already smoke!
-		if(misty_boi.phase_controller.center_holder != center_holder)
+		var/obj/mist/misty_boi = locate() in new_turf //Don't spread smoke where there's already smoke!
+		if(misty_boi && misty_boi?.phase_controller.center_holder != center_holder) //Is there another cell there that's of a different controller? Lets greet them if so
 			merge_into(misty_boi.phase_controller.center_holder, MIST_STANDARD_CELL_CAPACITY)
 			return TRUE
+		if(misty_boi) //if it's occupied - don't enter
+			continue
 		created_new = TRUE
-		new /atom/mist(new_turf, center_holder, src)
+		new /obj/mist(new_turf, center_holder, src)
 		break
 	if(created_new)//We're stable
 		current_cells++
@@ -149,8 +163,8 @@
 
 /datum/gas_phase/proc/remove_cell(num_cells)
 	var/max_dist = 0
-	var/atom/mist/target_mist
-	for(var/atom/mist/misty in interface_mists)
+	var/obj/mist/target_mist
+	for(var/obj/mist/misty in interface_mists)
 		var/misty_distance = get_dist(source, misty)
 		if(misty_distance > max_dist)
 			target_mist = misty
@@ -167,23 +181,23 @@
 
 
 //datum/gas_phase/proc/create_new_mist_cell(turf/turf)
-	//var/atom/mist/mist = new atom/mist(turf, center_holder)
+	//var/obj/mist/mist = new obj/mist(turf, center_holder)
 	//RegisterSignal(mist, COMSIG_PHASE_STATE_STABLE, .proc/remove_from_interface)
 	//RegisterSignal(mist, COMSIG_PHASE_STATE_UNSTABLE, .proc/add_to_interface)
 
 /datum/gas_phase/proc/end_all_mist()
 	qdel(src)
 
-/datum/gas_phase/proc/add_to_interface(atom/mist)
+/datum/gas_phase/proc/add_to_interface(obj/mist/mist)
 	interface_mists += mist
 	current_cells++
 
-/datum/gas_phase/proc/remove_from_interface(atom/mist)
+/datum/gas_phase/proc/remove_from_interface(obj/mist/mist)
 	//debug - should work with this removed
 	var/turf/t_loc = get_turf(mist)
 	var/adjacent_filled
 	for(var/turf/T in t_loc.GetAtmosAdjacentTurfs())
-		var/atom/mist/misty_boi = locate() in T //Don't spread smoke where there's already smoke!
+		var/obj/mist/misty_boi = locate() in T //Don't spread smoke where there's already smoke!
 		if(misty_boi)
 			adjacent_filled++
 			continue

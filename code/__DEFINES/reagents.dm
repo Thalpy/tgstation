@@ -113,6 +113,8 @@
 #define REACTION_PH_VOL_CONSTANT (1<<6)
 ///If a reaction will generate it's impure/inverse reagents in the middle of a reaction, as apposed to being determined on ingestion/on reaction completion
 #define REACTION_REAL_TIME_SPLIT (1<<7)
+///If a reaction will not use the gas in the air surrounding it to react
+#define REACTION_DO_NOT_USE_AIR (1<<8)
 
 ///Used for overheat_temp - This sets the overheat so high it effectively has no overheat temperature.
 #define NO_OVERHEAT 99999
@@ -131,6 +133,12 @@
 #define WITHDRAWAL_STAGE2_START_CYCLE 61
 #define WITHDRAWAL_STAGE2_END_CYCLE 120
 #define WITHDRAWAL_STAGE3_START_CYCLE 121
+
+///The ratio for converting reagent volume into atoms moles
+#define REAGENT_VOL_TO_GAS_MOLARITY 0.1
+///The standard rate in which a reagent diffuses out of a beaker
+#define STANDARD_REAGENT_DIFFUSE_RATE 0.1
+
 
 ///Phase state profiles for easy use
 ///Reagent is a liquid at room temperature

@@ -122,7 +122,8 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 		for(var/item in phase_states)
 			var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
 			object_list[phase_lookup] = phase_states[item] ///OBJECT = percentage
-		phase_states = object_list
+		if(phase_states)
+			phase_states = object_list
 	//else //At init a master reagent list is made - we don't want them to be processing their phases
 		//phase_states = null
 	if(glass_price)
@@ -134,6 +135,15 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 	holder = null
 	phase_states = null //Do not destroy reference - it's a lookup table
 	..()
+
+///Incase a phase profile breaks, this will repair it
+/datum/reagent/proc/relink_phase_profiles()
+	//phase_states = PHASE_STATE_LIQUID_DETERMINISTIC
+	var/object_list = list()
+	for(var/item in phase_states)
+		var/datum/reagent_phase/phase_lookup = GLOB.reagent_phase_list[item]
+		object_list[phase_lookup] = phase_states[item] ///OBJECT = percentage
+	phase_states = object_list
 
 ///A test called on this reagent from the unit testing methods
 ///Use this to set up tests specific to a reagent subtype
@@ -309,11 +319,18 @@ Primarily used in reagents/reaction_agents
 	var/turf/source_turf = get_turf(holder.my_atom)
 	if(!isopenturf(source_turf))
 		return
-	var/atom/mist/misty = locate() in source_turf
+	var/obj/mist/misty = locate() in source_turf
 	if(!misty)
-		new /datum/gas_phase(src, amount, holder.my_atom)
-	misty.phase_controller.center_holder.add_reagent(type, volume, reagtemp = holder.chem_temp, added_purity = purity, added_ph = ph)
-	holder.remove_reagent(type, amount)
+		new /datum/gas_phase(src, amount, holder.my_atom, source_turf)
+		holder.remove_reagent(type, amount, phase = GAS)
+		return
+	//Edge case - we don't want deleting things to be rejuvinated
+	if(QDELETED(misty.phase_controller))
+		return
+	misty.phase_controller.center_holder.add_reagent(type, amount, reagtemp = holder.chem_temp, added_purity = purity, added_ph = ph)
+	if(volume - amount <= 0)
+		message_admins("hmm")
+	holder.remove_reagent(type, amount, phase = GAS)
 
 ///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this from it's holder
 ///Processes the phases of each reagent in the holder
@@ -367,6 +384,7 @@ Primarily used in reagents/reaction_agents
 		//Limit our addition to be 1 across all states
 		if(1 < sum_ratio + ratio )
 			ratio = 1 - sum_ratio
+			debug += "This ratio was adjusted to [ratio]\n"
 		//Positive change
 		if(ratio > phase_states[phase])
 			var/difference = round(ratio - phase_states[phase], CHEMICAL_VOLUME_MINIMUM)
@@ -379,6 +397,7 @@ Primarily used in reagents/reaction_agents
 			else
 				potential_change = difference
 			if(potential_change == 0)//Rounding error catch
+				sum_ratio += ratio
 				continue
 			if(phase_states[phase] + potential_change > 1)
 				positive_changes += 1-phase_states[phase]
@@ -397,7 +416,10 @@ Primarily used in reagents/reaction_agents
 	if(unchanged == length(phase_states))
 		return FALSE
 	if(!negative_budget.len && positive_budget.len)
+		message_admins(debug)
 		stack_trace("Reagent [type] is attempting to create matter from nothing! (positive changes with nothing to take it from)")
+		check_phase_ratio(debug)
+		return
 	if(!negative_budget.len || !positive_budget.len) //No changes!
 		return FALSE
 	debug += "TOTAL: Adding a total vol of [positive_changes].\n"
@@ -433,6 +455,10 @@ Primarily used in reagents/reaction_agents
 ///Resolves the phase profile of a reagent immediately
 /datum/reagent/proc/resolve_phase(temp, pressure)
 	var/sum_ratio = 0
+	//Debug section
+	if(!phase_states)
+		relink_phase_profiles()
+		message_admins("[src] had no phase states assigned to it! How??")
 	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
 		if(!istype(phase, /datum/))
 			stack_trace("Phases are not set up correctly! Is this a reference value?")
@@ -445,13 +471,15 @@ Primarily used in reagents/reaction_agents
 			ratio = 1 - sum_ratio
 		sum_ratio += ratio
 		phase_states[phase] = round(ratio, CHEMICAL_QUANTISATION_LEVEL)
-	check_phase_ratio(debug = TRUE)
+	check_phase_ratio(debug = "yes")
 	STOP_PROCESSING(SSphase, src)
 
 ///Calls the tick proc on each of the phases - so that their extra effects work
 /datum/reagent/proc/phase_tick(delta_time)
 	var/needs_update = FALSE
 	for(var/datum/reagent_phase/phase as anything in phase_states)
+		if(phase_states[phase] == 0) //Don't process empty phases
+			continue
 		needs_update += phase.tick(src, delta_time)
 	return needs_update
 

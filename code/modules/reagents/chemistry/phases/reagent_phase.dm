@@ -31,7 +31,7 @@
 		calculation_method = new calculation_method(phase)
 
 ///called for each update that this phase has a volume presence
-/datum/reagent_phase/proc/tick((datum/reagent/reagent, delta_time)
+/datum/reagent_phase/proc/tick(datum/reagent/reagent, delta_time)
 
 ///When this current phase has a certain volume removed from it
 /datum/reagent_phase/proc/transition_from(datum/reagent/reagent, amount, target_phase)
@@ -67,7 +67,7 @@
 	return
 
 /datum/reagent_phase/gas/tick(datum/reagent/reagent, delta_time)
-	dissipate(reagent, reagent.mass * delta_time, delta_time)
+	return dissipate(reagent, reagent.get_phase_volume(GAS) * STANDARD_REAGENT_DIFFUSE_RATE * delta_time, delta_time)
 
 ///liquid to gas
 /datum/reagent_phase/gas/transition_from(datum/reagent/reagent, amount, delta_time)
@@ -78,16 +78,14 @@
 	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_TO_GAS, amount)
 
 ///If we're a gas and we're in an unsealed chamber
-/datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount, delta_time)
+/datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, amount)
 	if(reagent.holder.flags & SEALED) // Don't dissipate if we're sealed
 		return FALSE
-	amount = max(reagent.get_phase_volume(GAS) - amount, 0)//Don't remove more than we have - probably doesn't work, move this to remove_reagent
-	if(!amount)
-		return FALSE
+	//amount = max(reagent.get_phase_volume(GAS) - amount, 0)//Don't remove more than we have - probably doesn't work, move this to remove_reagent
+	amount = max(amount, STANDARD_REAGENT_DIFFUSE_RATE)
 	//Move below to remove_reagent() FERMI_TODO
 	//reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_ratio(phase)) - amount) / (reagent.volume - amount)
-	reagent.diffuse(amount * delta_time)
-	reagent.holder.remove_reagent(reagent.type, amount, phase = phase)
+	reagent.diffuse(amount)
 	if(reagent)
 		reagent.check_phase_ratio()
 	return TRUE
@@ -183,11 +181,10 @@
 	///The range around the phase line where transitions are deterministic based off linear decay (See readme)
 	var/range = 25
 
-/datum/phase_calc/linear/New(_gradient, _constant, _range)
+/datum/phase_calc/linear/New(_gradient, _constant)
 	. = ..()
 	gradient = _gradient
 	constant = _constant
-	range = _range
 
 /datum/phase_calc/linear/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	//The min required pressure

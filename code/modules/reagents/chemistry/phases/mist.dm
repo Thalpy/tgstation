@@ -1,4 +1,4 @@
-/atom/mist
+/obj/mist
 	name = "mist cloud"
 	desc = "A cloud of gaseous reagents. Be careful of breathing this stuff in!"
 	icon_state = "mist"
@@ -13,17 +13,19 @@
 - I don't think these need to move, just move the center and delete entries to encourage movement - they're thick!
 */
 
-/atom/mist/New(turf/open/input_turf, datum/reagents/center_holder, datum/gas_phase/input_phase_controller)
+/obj/mist/New(turf/open/input_turf, datum/reagents/center_holder, datum/gas_phase/input_phase_controller)
 	if(!isopenturf(input_turf))
 		stack_trace("Input turf isn't open!")
-	for(var/atom/mist/other_mist in input_turf.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
+	for(var/obj/mist/other_mist in input_turf.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
+		if(other_mist == src)
+			continue
 		message_admins("Attempting to move into occupied turf from a mist! This shouldn't be happening!!")
 		other_mist.phase_controller.merge_into(phase_controller.center_holder)
 		qdel(src)
 		return
 	. = ..()
 	local_turf = input_turf
-	reagents = center_holder
+	//reagents = center_holder // Do not do this - qdel will trigger the datum's destroy, killing the reagent controller's reagents with it (since it's a pointer)
 	phase_controller = input_phase_controller
 	RegisterSignal(local_turf, COMSIG_ATOM_ENTERED, .proc/flag_entree)
 	RegisterSignal(local_turf, COMSIG_ATOM_EXIT, .proc/unflag_entree)
@@ -32,17 +34,15 @@
 
 	for(var/mob/living/carbon/carby in input_turf.contents)
 		RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, .proc/carbon_breathe)
+	//Check to see if we're on the interface - i.e we're not surrounded.
 	for(var/turf/nearby_turf in input_turf.GetAtmosAdjacentTurfs())
-		var/atom/mist/misty = locate() in nearby_turf //Don't spread smoke where there's already smoke!
-		if(!misty)
+		var/obj/mist/misty = locate() in nearby_turf
+		if(misty) //If there's a mist there, keep looking
 			continue
-		phase_controller.add_to_interface(misty)
-	/*
-	mist.RegisterSignal(loc, COMSIG_TURF_EXPOSE, /atom/mist/proc/on_turf_change())
-	SEND_SIGNAL(src, COMSIG_ATOM_ENTERED, AM, oldLoc)
-	SEND_SIGNAL(AM, COMSIG_ATOM_ENTERING, src, oldLoc)*/
+		phase_controller.add_to_interface(src)
+		break
 
-/atom/mist/Destroy()
+/obj/mist/Destroy()
 	UnregisterSignal(local_turf, COMSIG_ATOM_ENTERED)
 	UnregisterSignal(local_turf, COMSIG_ATOM_EXIT)
 	UnregisterSignal(phase_controller, COMSIG_PHASE_CHANGE_COLOR)
@@ -52,11 +52,12 @@
 	phase_controller.remove_from_interface(src)
 	..()
 
-/atom/mist/proc/carbon_breathe(mob/living/carbon/carby, delta_time)
+/obj/mist/proc/carbon_breathe(mob/living/carbon/carby, delta_time)
 	SIGNAL_HANDLER
-	reagents.expose(carby, INGEST) //This should block transfer with a mask.
+	phase_controller.center_holder.expose(carby, INGEST) //This should block transfer with a mask.
+	phase_controller.center_holder.trans_to(carby, 2, methods = INGEST, ignore_stomach = TRUE)
 
-/atom/mist/proc/flag_entree(atom/movable/moveable, atom/oldLoc)
+/obj/mist/proc/flag_entree(atom/movable/moveable, atom/oldLoc)
 	SIGNAL_HANDLER
 	if(!iscarbon(moveable))
 		return
@@ -64,21 +65,21 @@
 	RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, .proc/carbon_breathe)
 	//reagents.expose(carby, INGEST) //This should block transfer with a mask.
 
-/atom/mist/proc/unflag_entree(atom/movable/moveable, atom/newLoc)
+/obj/mist/proc/unflag_entree(atom/movable/moveable, atom/newLoc)
 	SIGNAL_HANDLER
 	if(!iscarbon(moveable))
 		return
 	var/turf/open/new_turf = get_turf(newLoc)
-	for(var/atom/mist/other_mist in new_turf.contents) // is if(mist in contents) faster?
+	for(var/obj/mist/other_mist in new_turf.contents) // is if(mist in contents) faster?
 		if(other_mist.reagents == reagents)
 			return //we're in the same cloud so keep checking their breath
 	var/mob/living/carbon/carby = moveable
 	UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
 
-/atom/mist/proc/recalculate_color(new_color)
+/obj/mist/proc/recalculate_color(new_color)
 	SIGNAL_HANDLER
 	color = new_color
 
-/atom/mist/proc/begone()
+/obj/mist/proc/begone()
 	SIGNAL_HANDLER
 	qdel(src)

@@ -324,6 +324,9 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		new_reagent.chemical_flags |= REAGENT_DONOTSPLIT
 
 	update_total()
+	if(QDELETED(new_reagent))
+		stack_trace("Attempted to add [new_reagent.type] to a holder - only for it to fail at update total.")
+		return FALSE
 	if(reagtemp != cached_temp)
 		var/new_heat_capacity = heat_capacity()
 		if(new_heat_capacity)
@@ -373,7 +376,16 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			if(isnull(phase))
 				amount = clamp(amount, 0, cached_reagent.volume)
 			else //Otherwise limit the amount we remove by the phase ratio
-				amount = clamp(amount, 0, cached_reagent.volume * cached_reagent.get_phase_ratio(phase))
+				var/phase_volume = cached_reagent.volume * cached_reagent.get_phase_ratio(phase)
+				//remove all of a phase
+				if(amount > phase_volume)
+					amount = phase_volume
+					cached_reagent.set_phase_percent(phase, 0)
+				else
+					var/ratio = cached_reagent.get_phase_ratio(phase) - ((amount / phase_volume) * cached_reagent.get_phase_ratio(phase))
+					cached_reagent.set_phase_percent(phase, ratio)
+					amount = clamp(amount, 0, cached_reagent.volume * cached_reagent.get_phase_ratio(phase))
+
 				cached_reagent.set_phase_percent(phase, amount)
 			cached_reagent.volume -= amount
 			update_total()
@@ -381,6 +393,16 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 				handle_reactions()
 			SEND_SIGNAL(src, COMSIG_REAGENTS_REM_REAGENT, QDELING(cached_reagent) ? reagent : cached_reagent, amount)
 
+			return TRUE
+	return FALSE
+
+///Remove gaseous reagents from the local area
+/datum/reagents/proc/remove_local_gas_reagent(reagent_type, volume)
+	volume = volume * REAGENT_VOL_TO_GAS_MOLARITY
+	var/datum/gas_mixture/gas_mix = my_atom.return_air()
+	for(var/gas_id as anything in gas_mix.gases)
+		if(reagent_type == GLOB.gas_to_reagent[gas_id])
+			gas_mix.remove_specific(gas_id, volume)
 			return TRUE
 	return FALSE
 
@@ -499,7 +521,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 /datum/reagents/proc/has_reagent(reagent, amount = -1, needs_metabolizing = FALSE)
 	var/list/cached_reagents = reagent_list
 	for(var/datum/reagent/holder_reagent as anything in cached_reagents)
-		if (holder_reagent.type == reagent)
+		if(holder_reagent.type == reagent)
 			if(!amount)
 				if(needs_metabolizing && !holder_reagent.metabolizing)
 					return FALSE
@@ -509,6 +531,17 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 					if(needs_metabolizing && !holder_reagent.metabolizing)
 						return FALSE
 					return holder_reagent
+	return FALSE
+
+
+/**
+ * Checks to see if the holder has gas reagents in the turf it occupies
+ */
+/datum/reagents/proc/has_in_air(reagent)
+	var/datum/gas_mixture/gas_mix = my_atom.return_air()
+	for(var/gas_id as anything in gas_mix.gases)
+		if(reagent == GLOB.gas_to_reagent[gas_id])
+			return TRUE
 	return FALSE
 
 
@@ -913,10 +946,13 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		if(!(has_changed_state()))
 			return FALSE
 
-	var/list/cached_reagents = reagent_list
+	var/list/cached_reagents = reagent_list.Copy()
 	//Detect reagents in the air
 	if(!(flags & SEALED))
-	var/datum/gas_mixture/gas_mix = my_atom.return_air()
+		var/datum/gas_mixture/gas_mix = my_atom.return_air()
+		if(gas_mix)
+			for(var/gas_id as anything in gas_mix.gases)
+				cached_reagents += GLOB.chemical_reagents_list[GLOB.gas_to_reagent[gas_id]]
 
 
 	var/list/cached_reactions = GLOB.chemical_reactions_list
@@ -950,7 +986,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 
 			for(var/req_reagent in cached_required_reagents)
 				if(!has_reagent(req_reagent, (cached_required_reagents[req_reagent]*granularity)))
-					break
+					if(!(reaction.reaction_flags & REACTION_DO_NOT_USE_AIR) || !has_in_air(req_reagent))
+						break
 				total_matching_reagents++
 			for(var/_catalyst in cached_required_catalysts)
 				if(!has_reagent(_catalyst, (cached_required_catalysts[_catalyst]*granularity)))
@@ -1315,6 +1352,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		else
 			pressure = 0 //Uhhh
 		return
+	pressure = 0
 	var/sum_pressure = 0
 	var/active_states
 	var/sum_moles
@@ -1329,13 +1367,13 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			//How much "raw" molar volume we have before normalising it
 			sum_moles += log(((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density), 10)
 		//pV = nRT except I fudge numbers and ideology is gone
-		sum_pressure += (sum_moles * chem_temp)/(reagent.volume * active_states)
+		sum_pressure += (sum_moles * chem_temp * 0.1)/(reagent.volume * active_states)
 	sum_pressure /= reagent_list.len
+	sum_pressure *= total_volume / maximum_volume
 	//If we're in a holder that isn't sealed
-
-	//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
 	//Update our pressure
-	pressure = sum_pressure
+	pressure = sum_pressure * 1000
+	//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
 	//If we're over the pressure value of the holder - i.e. are we gonna blow?
 	//FERMI_TODO
 	//check_holder_pressure()
@@ -1351,7 +1389,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	var/total_moles = gas_mix.total_moles()
 	for(var/gas_id as anything in gas_mix.gases)
 		add_reagent(GLOB.gas_to_reagent[gas_id], (gas_mix.gases[gas_id][MOLES] / total_moles) * empty_volume, gas_mix.temperature)
-	gas_mix.remove(empty_volume)
+	gas_mix.remove(empty_volume*REAGENT_VOL_TO_GAS_MOLARITY)
 	flags |= SEALED
 
 /datum/reagents/proc/unseal()
@@ -1623,7 +1661,6 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		return
 	var/total_ph = 0
 	for(var/datum/reagent/reagent as anything in reagent_list)
-		if(QDELETED)
 		total_ph += (reagent.ph * reagent.volume)
 	//Keep limited
 	ph = clamp(total_ph/total_volume, 0, 14)
