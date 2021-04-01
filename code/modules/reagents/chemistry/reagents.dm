@@ -321,6 +321,16 @@ Primarily used in reagents/reaction_agents
 		return
 	var/obj/mist/misty = locate() in source_turf
 	if(!misty)
+		//If there's no mist on our target turf - we want to join to an existing mist if it exists.
+		for(var/turf/nearby_turf in source_turf.GetAtmosAdjacentTurfs())
+			var/obj/mist/misty_lass = locate() in nearby_turf
+			if(misty_lass)
+				if(QDELETED(misty_lass.phase_controller))
+					continue
+				new /obj/mist(source_turf, misty_lass.phase_controller.center_holder, misty_lass.phase_controller)
+				misty_lass.phase_controller.center_holder.add_reagent(type, amount, reagtemp = holder.chem_temp, added_purity = purity, added_ph = ph)
+				return
+		//If we're truly alone, create a new one
 		new /datum/gas_phase(src, amount, holder.my_atom, source_turf)
 		holder.remove_reagent(type, amount, phase = GAS)
 		return
@@ -328,8 +338,6 @@ Primarily used in reagents/reaction_agents
 	if(QDELETED(misty.phase_controller))
 		return
 	misty.phase_controller.center_holder.add_reagent(type, amount, reagtemp = holder.chem_temp, added_purity = purity, added_ph = ph)
-	if(volume - amount <= 0)
-		message_admins("hmm")
 	holder.remove_reagent(type, amount, phase = GAS)
 
 ///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this from it's holder
@@ -363,7 +371,7 @@ Primarily used in reagents/reaction_agents
 	var/unchanged = 0
 	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
 		if(phase_states[phase] > 1)
-			stack_trace("Input phase [phase.phase] is giving funky input ratios [phase_states[phase]]")
+			message_admins("Input phase [phase.phase] is giving funky input ratios [phase_states[phase]]")
 		if(sum_ratio >= 1)
 			//target_list[phase] = 0
 			//We're at our limit - but we still need to track what we're removing from
@@ -416,8 +424,8 @@ Primarily used in reagents/reaction_agents
 	if(unchanged == length(phase_states))
 		return FALSE
 	if(!negative_budget.len && positive_budget.len)
+		message_admins("Reagent [type] is attempting to create matter from nothing! (positive changes with nothing to take it from)")
 		message_admins(debug)
-		stack_trace("Reagent [type] is attempting to create matter from nothing! (positive changes with nothing to take it from)")
 		//check_phase_ratio(debug)
 		return
 	if(!negative_budget.len || !positive_budget.len) //No changes!
@@ -520,9 +528,12 @@ Primarily used in reagents/reaction_agents
 	for(var/phase_state in phase_states)
 		sum_ratio += phase_states[phase_state]
 	sum_ratio = round(sum_ratio, CHEMICAL_VOLUME_ROUNDING) //Pesky 0.0000001s
+	if(sum_ratio <= 0)
+		stack_trace("reagent has a sum ratio of 0 which we want to avoid happening")
+		return //If we're being deleted then our sum will be 0
 	if(sum_ratio != 1) //This can happen from set_phase_percent()
 		if(debug)
-			stack_trace("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
+			message_admins("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")
 			message_admins(debug + "\nFinal ratio: [sum_ratio]")
 		for(var/datum/reagent_phase/phase_state in phase_states)
 			phase_states[phase_state] = phase_states[phase_state] / sum_ratio

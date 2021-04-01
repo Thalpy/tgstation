@@ -1,8 +1,7 @@
-import { toFixed } from 'common/math';
+import { round, toFixed } from 'common/math';
 import { toTitleCase } from 'common/string';
-import { Fragment } from 'inferno';
 import { useBackend, useLocalState } from '../backend';
-import { AnimatedNumber, Box, Button, Icon, LabeledList, ProgressBar, Section } from '../components';
+import { AnimatedNumber, Tooltip, Box, Button, Icon, Flex, LabeledList, ProgressBar, Section } from '../components';
 import { Window } from '../layouts';
 
 export const ChemDispenser = (props, context) => {
@@ -11,6 +10,10 @@ export const ChemDispenser = (props, context) => {
   const { recipeReagents = [] } = data;
   const [hasCol, setHasCol] = useLocalState(
     context, 'has_col', false);
+  let offset = 0;
+  const incrementOffset = increment => {
+    offset += increment;
+  };
   // TODO: Change how this piece of shit is built on server side
   // It has to be a list, not a fucking OBJECT!
   const recipes = Object.keys(data.recipes)
@@ -169,11 +172,18 @@ export const ChemDispenser = (props, context) => {
             <LabeledList.Item
               label="Beaker"
               buttons={!!data.isBeakerLoaded && (
+                <>
                 <Button
                   icon="eject"
                   content="Eject"
                   disabled={!data.isBeakerLoaded}
                   onClick={() => act('eject')} />
+                <Button
+                  icon={!data.isBeakerSealed ? "compress-arrows-alt" : "compress"}
+                  content={data.isBeakerSealed ? "Unseal" : "Seal"}
+                  disabled={!data.isBeakerLoaded}
+                  onClick={() => act('seal')} />
+                </>
               )}>
               {recording
                 && 'Virtual beaker'
@@ -195,7 +205,7 @@ export const ChemDispenser = (props, context) => {
                   || beakerContents.length === 0 && 'Nothing'}
               </Box>
               {beakerContents.map(chemical => (
-                <>
+                <Flex>
                   <Box
                     key={chemical.name}
                     color="label">
@@ -205,16 +215,47 @@ export const ChemDispenser = (props, context) => {
                     {' '}
                     units of {chemical.name}
                   </Box>
-                  {chemical.pressureProfile.map(phase => (
+                    <Flex.Item
+                      style={{
+                        'justify-content': 'flex-end',
+                      }}>
                     <Box
-                      key={chemical.name+phase.name}>
-                      {phase.name}:
-                      <AnimatedNumber
-                        initial={0}
-                        value={(phase.ratio*100)+"%"} />
+                      ml={1}
+                      style={{
+                        'position': 'relative',
+                        'width': '105px',
+                        'height': '16px',
+                        'display': 'flex',
+                        'justify-content': 'flex-end',
+                        'background-color': '#363636',
+                        'border': '2px solid #363636',
+                        'border-index': '0',
+                        'box-shadow': '4px 4px #000000',
+                      }}>
+                      {chemical.pressureProfile.map(phase => (
+                        !!phase.ratio && (
+                          <Box
+                            key={chemical.name+phase.name}
+                            position="relative"
+                            color="#000000"
+                            style={{
+                              'position': 'absolute',
+                              'left': `${offset}px`,
+                              'width': `${(phase.ratio*100)}%`,
+                              'height': '12px',
+                              'background-color': `${(phase.color)}`,
+                              'transition': '1.2s ease-out',
+                            }}>
+                            <Tooltip
+                              content={`${(phase.name)}: ${round(phase.ratio*100)}%`} />
+                            {incrementOffset(phase.ratio*100)}
+                          </Box>
+                        )
+                      ))}
+                      {incrementOffset(-100)}
                     </Box>
-                  ))}
-                </>
+                  </Flex.Item>
+                </Flex>
               ))}
               {((beakerContents.length > 0 && !!data.showpH) && (
                 <>

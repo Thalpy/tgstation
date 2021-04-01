@@ -199,23 +199,23 @@
 	data["energy"] = cell.charge ? cell.charge * powerefficiency : "0" //To prevent NaN in the UI.
 	data["maxEnergy"] = cell.maxcharge * powerefficiency
 	data["isBeakerLoaded"] = beaker ? 1 : 0
+	data["isBeakerSealed"] = (beaker?.reagents.flags & SEALED) ? 1 : 0
 	data["showpH"] = show_ph
 	data["pressure"] = beaker?.reagents.pressure
 
 	var/beakerContents[0]
-	var/beakerCurrentVolume = 0
+
 	if(beaker && beaker.reagents && beaker.reagents.reagent_list.len)
-		var/reagent_pressure_profile = list()
 		for(var/datum/reagent/R in beaker.reagents.reagent_list)
+			var/reagent_pressure_profile = list()
 			for(var/datum/reagent_phase/phase in R.phase_states)
 				reagent_pressure_profile += list(list("name" =  phase.phase, "ratio" = R.phase_states[phase], "color" = phase.color))
 			beakerContents.Add(list(list("name" = R.name, "volume" = round(R.volume, 0.01), "pH" = R.ph, "purity" = R.purity, "pressureProfile" = reagent_pressure_profile))) // list in a list because Byond merges the first list...
-			beakerCurrentVolume += R.volume
 
 	data["beakerContents"] = beakerContents
 
 	if (beaker)
-		data["beakerCurrentVolume"] = round(beakerCurrentVolume, 0.01)
+		data["beakerCurrentVolume"] = round(beaker.reagents.total_volume, 0.01)
 		data["beakerMaxVolume"] = beaker.volume
 		data["beakerTransferAmounts"] = beaker.possible_transfer_amounts
 		data["beakerCurrentpH"] = round(beaker.reagents.ph, 0.01)
@@ -291,6 +291,14 @@
 				. = TRUE
 		if("eject")
 			replace_beaker(usr)
+			. = TRUE
+		if("seal")
+			if(beaker.reagents.flags & SEALED)
+				beaker.reagents.unseal()
+				playsound(src, 'sound/machines/airlockopen.ogg', 50, TRUE)
+			else
+				beaker.reagents.seal()
+				playsound(src, 'sound/machines/airlockclose.ogg', 50, TRUE)
 			. = TRUE
 		if("dispense_recipe")
 			if(!is_operational || QDELETED(cell))

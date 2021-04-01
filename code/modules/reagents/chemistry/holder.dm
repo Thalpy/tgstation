@@ -214,6 +214,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	//We're about to delete all reagents, so lets cleanup
 	//Stop our phase processing if we have it
 	for(var/datum/reagent/reagent as anything in reagent_list)
+		STOP_PROCESSING(SSphase, reagent)
 		qdel(reagent)
 	reagent_list = null
 	if(is_reacting) //If false, reaction list should be cleaned up
@@ -376,9 +377,12 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			if(isnull(phase))
 				amount = clamp(amount, 0, cached_reagent.volume)
 			else //Otherwise limit the amount we remove by the phase ratio
-				var/phase_volume = cached_reagent.volume * cached_reagent.get_phase_ratio(phase)
+				var/phase_volume = CEILING(cached_reagent.volume * cached_reagent.get_phase_ratio(phase), CHEMICAL_VOLUME_ROUNDING)
+				//We should be qdeled if this is true, so don't bother setting phases
+				if(phase_volume > cached_reagent.volume)
+					amount = phase_volume
 				//remove all of a phase
-				if(amount > phase_volume)
+				else if(amount > phase_volume)
 					amount = phase_volume
 					cached_reagent.set_phase_percent(phase, 0)
 				else
@@ -1308,7 +1312,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	var/list/cached_reagents = reagent_list
 	total_volume = 0
 	for(var/datum/reagent/reagent as anything in cached_reagents)
-		if((reagent.volume < 0.05) && !is_reacting)
+		if((reagent.volume < CHEMICAL_VOLUME_ROUNDING) && !is_reacting)
 			del_reagent(reagent.type)
 		else if(reagent.volume <= CHEMICAL_VOLUME_MINIMUM)//For clarity
 			del_reagent(reagent.type)
@@ -1324,6 +1328,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 ///Call this to check the phase states of all of the reagents within the holder, it will start processing them if true.
 /datum/reagents/proc/check_reagent_phase()
 	if(!reagent_list)
+		return FALSE
+	if(flags & REAGENT_HOLDER_ALIVE)
 		return FALSE
 	update_pressure()
 	var/needs_processing = FALSE
@@ -1352,27 +1358,24 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		else
 			pressure = 0 //Uhhh
 		return
-	pressure = 0
 	var/sum_pressure = 0
-	var/active_states
 	var/sum_moles
 	//Get the pressure of the reagents in the holder
 	for(var/datum/reagent/reagent as anything in reagent_list)
-		active_states = 0
 		sum_moles = 0
 		for(var/datum/reagent_phase/phase in reagent.phase_states)
-			if(!reagent.phase_states[phase]) //phase is empty
+			if(reagent.phase_states[phase] < CHEMICAL_VOLUME_ROUNDING) //phase is empty
 				continue
-			active_states++
 			//How much "raw" molar volume we have before normalising it
-			sum_moles += log(10, ((reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density))
+			sum_moles += (reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density//What maniac has base first
 		//pV = nRT except I fudge numbers and ideology is gone
-		sum_pressure += (sum_moles * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume)
-	sum_pressure /= reagent_list.len
+		sum_pressure += (log(sum_moles) * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume) ///It's a good idea to make this cheaper move the log out if you can
+	//sum_pressure /= reagent_list.len
+	//Keep our volume relative to the total - so gaps are treated as 0 pressure.
 	sum_pressure *= total_volume / maximum_volume
 	//If we're in a holder that isn't sealed
 	//Update our pressure
-	pressure = sum_pressure
+	pressure = sum_pressure * FERMI_FUDGE_PRESSURE_CONSTANT //Because our moles are fantasy
 	//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
 	//If we're over the pressure value of the holder - i.e. are we gonna blow?
 	//FERMI_TODO
@@ -1384,13 +1387,19 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 /datum/reagents/proc/seal()
 	var/empty_volume = maximum_volume - total_volume
 	if(empty_volume == 0)
-		return FALSE
+		flags |= SEALED
+		check_reagent_phase()
+		return
 	var/datum/gas_mixture/gas_mix = my_atom.return_air()
 	var/total_moles = gas_mix.total_moles()
 	for(var/gas_id as anything in gas_mix.gases)
-		add_reagent(GLOB.gas_to_reagent[gas_id], (gas_mix.gases[gas_id][MOLES] / total_moles) * empty_volume, gas_mix.temperature)
+		var/amount = (gas_mix.gases[gas_id][MOLES] / total_moles) * empty_volume
+		if(amount < CHEMICAL_VOLUME_ROUNDING)
+			continue
+		add_reagent(GLOB.gas_to_reagent[gas_id], amount, gas_mix.temperature)
 	gas_mix.remove(empty_volume*REAGENT_VOL_TO_GAS_MOLARITY)
 	flags |= SEALED
+	check_reagent_phase()
 
 /datum/reagents/proc/unseal()
 	flags &= ~SEALED

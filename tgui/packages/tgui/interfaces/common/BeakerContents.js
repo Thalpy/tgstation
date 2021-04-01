@@ -1,3 +1,4 @@
+import { round } from 'common/math';
 import { AnimatedNumber, Box, Flex, Tooltip } from '../../components';
 
 export const BeakerContents = props => {
@@ -34,6 +35,7 @@ export const BeakerContents = props => {
                 'position': 'relative',
                 'width': '105px',
                 'height': '16px',
+                'display': 'flex',
                 'background-color': '#363636',
                 'border': '2px solid #363636',
                 'border-index': '0',
@@ -45,7 +47,6 @@ export const BeakerContents = props => {
                     key={chemical.name+phase.name}
                     position="relative"
                     color="#000000"
-
                     style={{
                       'position': 'absolute',
                       'left': `${offset}px`,
@@ -54,9 +55,8 @@ export const BeakerContents = props => {
                       'background-color': `${(phase.color)}`,
                       'transition': '1.2s ease-out',
                     }}>
-
                     <Tooltip
-                      content={`${(phase.name)}: ${(phase.ratio*100)}%`} />
+                      content={`${(phase.name)}: ${round(phase.ratio*100)}%`} />
                     {incrementOffset(phase.ratio*100)}
                   </Box>
                 )

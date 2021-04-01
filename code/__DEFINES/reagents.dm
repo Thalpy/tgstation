@@ -24,7 +24,7 @@
 #define AMOUNT_VISIBLE (1<<6) // For non-transparent containers that still have the general amount of reagents in them visible.
 #define NO_REACT (1<<7) // Applied to a reagent holder, the contents will not react with each other.
 #define REAGENT_HOLDER_INSTANT_REACT (1<<8)  // Applied to a reagent holder, all of the reactions in the reagents datum will be instant. Meant to be used for things like smoke effects where reactions aren't meant to occur
-///If the holder is "alive" (i.e. mobs and organs) - If this flag is applied to a holder it will cause reagents to split upon addition to the object
+///If the holder is "alive" (i.e. mobs and organs) - If this flag is applied to a holder it will cause reagents to split upon addition to the object - also prevents phase effects
 #define REAGENT_HOLDER_ALIVE (1<<9)
 ///If the container is sealed - will trap in gas, but will increase in pressure
 #define SEALED (1<<10)
@@ -95,6 +95,8 @@
 #define REAGENT_IGNORE_STASIS (1<<6)
 ///Causes the reagent to resolve phase instantly
 #define REAGENT_PHASE_INSTANT (1<<7)
+///Used to track if the reagent is in a physical phase or not - unusued - but might be needed later
+#define REAGENT_STATE_PHYSICAL_PHASE (1<<8)
 
 //Chemical reaction flags, for determining reaction specialties
 ///Convert into impure/pure on reaction completion
@@ -134,6 +136,8 @@
 #define WITHDRAWAL_STAGE2_END_CYCLE 120
 #define WITHDRAWAL_STAGE3_START_CYCLE 121
 
+///The constant used to adjust pressure values in reagent holders when sealed. It's a fudge because we don't have moles, so I adjust numbers to make up fantasy moles
+#define FERMI_FUDGE_PRESSURE_CONSTANT 0.03
 ///The ratio for converting reagent volume into atoms moles
 #define REAGENT_VOL_TO_GAS_MOLARITY 0.1
 ///The standard rate in which a reagent diffuses out of a beaker

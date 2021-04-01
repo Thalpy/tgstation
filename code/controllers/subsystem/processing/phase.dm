@@ -38,6 +38,9 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 			stack_trace("A holderless reagent made it's way to the phase list when it shouldn't")
 			STOP_PROCESSING(src, reagent)
 		if(reagent.holder != holder)
+			//if(QDELETED(reagent.holder))
+			//	processing -= reagent
+			//	continue
 			//We do this first because we want to update after we've done all the reagents in the holder
 			if(holder) //but this means we have a null holder on start
 				holder.update_pressure()

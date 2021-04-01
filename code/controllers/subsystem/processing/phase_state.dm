@@ -8,6 +8,5 @@ PROCESSING_SUBSYSTEM_DEF(phase_states)
 	wait = 2 SECONDS
 	flags = SS_NO_FIRE| SS_NO_INIT
 	runlevels = RUNLEVEL_GAME | RUNLEVEL_POSTGAME
-	///What time was it when we last ticked
-	var/gas_states = list()
-
+	///Currently active physical states
+	var/list/gas_states = list()

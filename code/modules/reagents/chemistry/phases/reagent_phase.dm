@@ -86,7 +86,7 @@
 	//Move below to remove_reagent() FERMI_TODO
 	//reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_ratio(phase)) - amount) / (reagent.volume - amount)
 	reagent.diffuse(amount)
-	if(reagent)
+	if(!QDELETED(reagent))
 		reagent.check_phase_ratio()
 	return TRUE
 
