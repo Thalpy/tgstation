@@ -1,30 +1,34 @@
-/obj/mist
-	name = "mist cloud"
-	desc = "A cloud of gaseous reagents. Be careful of breathing this stuff in!"
-	icon_state = "mist"
+/obj/phase_object
+	name = "blank phase cell"
+	desc = "This shouldn't be here, please let fermi know!"
 	icon = 'icons/obj/chemical.dmi'
+	icon_state = "clown flower"//So it's obviously an error
 	alpha = 200
 	///Local turf we're in
 	var/turf/open/local_turf
 	///The controller for this cloud
-	var/datum/gas_phase/phase_controller
+	var/datum/physical_phase/gas_phase/phase_controller
 	///If this is an interfacial cell
 	var/interfacial = FALSE
-	///If this obj will costs reagents on del - i.e. if it's blown up we want to close the holder some reagents
+	///If this obj will costs reagents on del - i.e. if it's blown up we want to cost the holder some reagents
 	var/cost_on_delete = TRUE
+	///What type of phase we are
+	var/phase
+
+//For solids - see solid phase object
 
 /*
 - I don't think these need to move, just move the center and delete entries to encourage movement - they're thick!
 */
 
-/obj/mist/New(turf/open/input_turf, datum/reagents/center_holder, datum/gas_phase/input_phase_controller)
+/obj/phase_object/New(turf/open/input_turf, datum/reagents/center_holder, datum/physical_phase/input_phase_controller)
 	if(!isopenturf(input_turf))
 		stack_trace("Input turf isn't open!")
-	for(var/obj/mist/other_mist in input_turf.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
-		if(other_mist == src)
+	for(var/obj/phase_object/other_phase in input_turf.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
+		if(other_phase == src || other_phase.phase != phase)
 			continue
-		message_admins("Attempting to move into occupied turf from a mist! This shouldn't be happening!!")
-		other_mist.phase_controller.merge_into(phase_controller.center_holder)
+		stack_trace("Attempting to move into occupied turf with a new physical phase! This shouldn't be happening!!")
+		other_phase.phase_controller.merge_into(phase_controller.center_holder)
 		begone() //Same as qdel
 		return
 	. = ..()
@@ -37,64 +41,90 @@
 	RegisterSignal(phase_controller, COMSIG_PHASE_CHANGE_COLOR, .proc/recalculate_color)
 	recalculate_color()
 	phase_controller.current_cells++
-	for(var/mob/living/carbon/carby in input_turf.contents)
-		RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, .proc/carbon_breathe)
 	//Check to see if we're on the interface - i.e we're not surrounded.
 	for(var/turf/nearby_turf in input_turf.GetAtmosAdjacentTurfs())
-		var/obj/mist/misty = locate() in nearby_turf
-		if(misty) //If there's a mist there, keep looking
+		var/obj/phase_object/phasey = locate() in nearby_turf //This seems bad
+		if(phasey.phase == phase) //If there's a mist there, keep looking
 			continue
 		phase_controller.add_to_interface(src)
 		break
 
 
-/obj/mist/Destroy()
+/obj/phase_object/Destroy()
 	UnregisterSignal(local_turf, COMSIG_ATOM_ENTERED)
 	UnregisterSignal(local_turf, COMSIG_ATOM_EXIT)
 	UnregisterSignal(phase_controller, COMSIG_PHASE_CHANGE_COLOR)
 	UnregisterSignal(phase_controller, COMSIG_PHASE_STATE_DELETE)
-	for(var/mob/living/carbon/carby in local_turf.contents)
-		UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
 	phase_controller.remove_from_interface(src)
 	phase_controller.current_cells--
 	if(cost_on_delete)
 		phase_controller.center_holder.remove_all(MIST_STANDARD_CELL_CAPACITY)
 	..()
 
-/obj/mist/proc/carbon_breathe(source, mob/living/carbon/carby, delta_time)
+/obj/phase_object/proc/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
 	SIGNAL_HANDLER
-	phase_controller.center_holder.expose(carby, INGEST) //This should block transfer with a mask.
-	phase_controller.center_holder.trans_to(carby, 2, methods = INGEST, ignore_stomach = TRUE)
 
-/obj/mist/proc/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
+/obj/phase_object/proc/unflag_entree(atom/oldLoc, atom/movable/moveable, atom/newLoc)
 	SIGNAL_HANDLER
-	var/mob/living/carbon/carby = moveable
-	if(!iscarbon(carby))
-		return
-	RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, .proc/carbon_breathe)
-	//reagents.expose(carby, INGEST) //This should block transfer with a mask.
 
-/obj/mist/proc/unflag_entree(atom/oldLoc, atom/movable/moveable, atom/newLoc)
-	SIGNAL_HANDLER
-	var/mob/living/carbon/carby = moveable
-	if(!iscarbon(carby))
-		return
-	var/turf/open/new_turf = get_turf(newLoc)
-	for(var/obj/mist/other_mist in new_turf.contents) // is if(mist in contents) faster?
-		if(other_mist.reagents == reagents)
-			return //we're in the same cloud so keep checking their breath
-
-	UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
-
-/obj/mist/proc/recalculate_color(datum/gas_phase/controller, new_color, interface_alpha)
+/obj/phase_object/proc/recalculate_color(datum/physical_phase/controller, new_color, interface_alpha)
 	SIGNAL_HANDLER
 	color = new_color
 	if(interfacial)
 		alpha = interface_alpha
 
-/obj/mist/proc/begone(source)
+/obj/phase_object/proc/begone(source)
 	SIGNAL_HANDLER
 	if(!QDELETED(src))
-		message_admins("attempted to delete mist when it was flagged to delete")
 		cost_on_delete = FALSE
 		qdel(src)
+	else
+		message_admins("attempted to delete phase cell when it was flagged to delete")
+
+
+/obj/phase_object/mist
+	name = "mist cloud"
+	desc = "A cloud of gaseous reagents. Be careful of breathing this stuff in!"
+	icon_state = "mist"
+	phase = GAS
+	layer = ABOVE_NORMAL_TURF_LAYER
+
+/obj/phase_object/mist/New(turf/open/input_turf, datum/reagents/center_holder, datum/physical_phase/input_phase_controller)
+	. = ..()
+	for(var/mob/living/carbon/carby in input_turf.contents)
+		phase_controller.RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, /datum/physical_phase/gas_phase/proc/carbon_breathe)
+
+/obj/phase_object/Destroy(force)
+	for(var/mob/living/carbon/carby in local_turf.contents)
+		phase_controller.UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
+	return ..()
+
+/obj/phase_object/mist/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
+	. = ..()
+	var/mob/living/carbon/carby = moveable
+	if(!iscarbon(carby))
+		return
+	if(phase_controller.signal_procs[carby][COMSIG_CARBON_BREATHE_TURF]) //If we've already flagged a signal - then don't reflag
+		message_admins("Mob already flagged")
+		return
+	phase_controller.RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, /datum/physical_phase/gas_phase/proc/carbon_breathe)
+
+/obj/phase_object/mist/unflag_entree(atom/oldLoc, atom/movable/moveable, atom/newLoc)
+	. = ..()
+	var/mob/living/carbon/carby = moveable
+	if(!iscarbon(carby))
+		return
+	var/turf/open/new_turf = get_turf(newLoc)
+	for(var/obj/phase_object/other in new_turf.contents) // is if(mist in contents) faster?
+		if(other.reagents == reagents)
+			return //we're in the same cloud so keep checking their breath
+	phase_controller.UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
+
+
+/obj/phase_object/liquid
+	name = "Liquid"
+	desc = "A pool of liquid reagents. Be careful of swimming in this stuff!"
+	icon_state = "liquid"
+	alpha = 200
+	phase = LIQUID
+	layer = ABOVE_OPEN_TURF_LAYER

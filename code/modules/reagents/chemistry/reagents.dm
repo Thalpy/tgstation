@@ -319,19 +319,19 @@ Primarily used in reagents/reaction_agents
 	var/turf/source_turf = get_turf(holder.my_atom)
 	if(!isopenturf(source_turf))
 		return
-	var/obj/mist/misty = locate() in source_turf
+	var/obj/phase_object/mist/misty = locate() in source_turf
 	if(!misty)
 		//If there's no mist on our target turf - we want to join to an existing mist if it exists.
 		for(var/turf/nearby_turf in source_turf.GetAtmosAdjacentTurfs())
-			var/obj/mist/misty_lass = locate() in nearby_turf
+			var/obj/phase_object/mist/misty_lass = locate() in nearby_turf
 			if(misty_lass)
 				if(QDELETED(misty_lass.phase_controller))
 					continue
-				new /obj/mist(source_turf, misty_lass.phase_controller.center_holder, misty_lass.phase_controller)
+				new /obj/phase_object/mist(source_turf, misty_lass.phase_controller.center_holder, misty_lass.phase_controller)
 				misty_lass.phase_controller.center_holder.add_reagent(type, amount, reagtemp = holder.chem_temp, added_purity = purity, added_ph = ph)
 				return
 		//If we're truly alone, create a new one
-		new /datum/gas_phase(src, amount, holder.my_atom, source_turf)
+		new /datum/physical_phase/gas_phase(src, amount, holder.my_atom, source_turf)
 		holder.remove_reagent(type, amount, phase = GAS)
 		return
 	//Edge case - we don't want deleting things to be rejuvinated

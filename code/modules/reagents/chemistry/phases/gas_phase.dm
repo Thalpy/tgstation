@@ -9,19 +9,23 @@
 
 #define MIST_STANDARD_CELL_CAPACITY 20
 
-/datum/gas_phase
+/datum/physical_phase
 	///This is the holder that holds the current reagents that are in the "air"
 	var/datum/reagents/center_holder
 	///The location atom we're tied to
 	var/atom/source
-	///How big our mist cloud is - i.e. the total number of cells we're on - affects diffuse rate
+	///How big our cell cloud is - i.e. the total number of cells we're on - affects diffuse rate
 	var/current_cells = 0
 	///The sum of the volume in the mist - this is cells * capacity
 	//var/sum_volume
 	///The interfacial cells - all cells within the center are considered "stable" so we don't process their movement
-	var/list/obj/mist/interface_mists = list()
+	var/list/obj/phase_object/interface_cells = list()
+	///The type of phase object we create
+	var/phase_object
+	///The type of phase we are
+	var/phase_type
 
-/datum/gas_phase/New(datum/reagent/reagent, volume, atom/reagent_source, turf/location)
+/datum/physical_phase/New(datum/reagent/reagent, volume, atom/reagent_source, turf/location)
 	. = ..()
 	if(!isopenturf(location))
 		stack_trace("Input turf isn't open!")
@@ -37,11 +41,11 @@
 	RegisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES, .proc/process)
 	RegisterSignal(source, COMSIG_PARENT_QDELETING, .proc/on_del_source)
 	//Add reagents
-	center_holder.my_atom = new /obj/mist(location, center_holder, src)
+	center_holder.my_atom = new phase_object(location, center_holder, src)
 	center_holder.add_reagent(reagent.type, volume) //Does not remove volume from original holder - should be handled outside of that
-	SSphase_states.gas_states += src
+	SSphase_states.active_state_controllers[phase_type] += src
 
-/datum/gas_phase/Destroy(force, ...)
+/datum/physical_phase/Destroy(force, ...)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_NEW_REAGENT)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_DEL_REAGENT)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES)
@@ -50,55 +54,45 @@
 	for(var/datum/reagent/reagent as anything in center_holder.reagent_list)
 		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_FROM_GAS) //Clean up signals
 	QDEL_NULL(center_holder)
-	SSphase_states.gas_states -= src
-	..()
+	SSphase_states.active_state_controllers[phase_type] -= src
+	return ..()
 
-///When we lose our origin atom - we backup to the mist on it's location - if there is none then we default backup to any avalible interface
-/datum/gas_phase/proc/on_del_source()
+///When we lose our origin atom - we backup to the cell on it's location - if there is none then we default backup to any avalible interface
+/datum/physical_phase/proc/on_del_source()
 	SIGNAL_HANDLER
 	var/turf/source_turf = get_turf(source)
 	///If we're deleting our source, but can't find where it was, then we recenter to any avalible interface as a backup
 	if(!source_turf)
-		source = pick(interface_mists)
+		source = pick(interface_cells)
 		return FALSE
-	var/obj/mist/misty = locate() in source_turf
-	if(misty)
-		source = misty
+	var/obj/phase_object/phasey = locate() in source_turf
+	if(phasey)
+		source = phasey
 		return TRUE
-	source = pick(interface_mists)
+	source = pick(interface_cells)
 	return FALSE
 
-/datum/gas_phase/proc/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
+/datum/physical_phase/proc/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
 	SIGNAL_HANDLER
-	RegisterSignal(reagent, COMSIG_PHASE_CHANGE_FROM_GAS, .proc/on_phase_change_from_gas)
-	RegisterSignal(reagent, COMSIG_REAGENT_DIFFUSE, .proc/override_reagent_diffusion)
+	RegisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY, .proc/on_phase_change_away)
 	reagent.chemical_flags &= REAGENT_STATE_PHYSICAL_PHASE
 	///Update mist color
 	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list))
-	//RegisterSignal(reagent, COMSIG_PHASE_CHANGE_TO_GAS, .proc/on_phase_change_to_gas) //Might not be needed
 
-//datum/gas_phase/proc/on_add_reagent(datum/reagent/reagent, amount, reagtemp, data, no_react)
-//	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list))
-
-/datum/gas_phase/proc/on_del_reagent(source, datum/reagent/reagent)
+/datum/physical_phase/proc/on_del_reagent(source, datum/reagent/reagent)
 	SIGNAL_HANDLER
 	UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_FROM_GAS)
-	UnregisterSignal(reagent, COMSIG_REAGENT_DIFFUSE)
 	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list))
 	//UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_TO_GAS)
 
-//datum/gas_phase/proc/on_remove_reagent(datum/reagent/reagent, amount)
-//	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list))
-
-///Diffusion creates mist - so we want to stop that!
-/datum/gas_phase/proc/override_reagent_diffusion(datum/reagent, volume)
-	center_holder.remove_reagent(reagent.type, volume/5)
-	return COMSIG_REAGENT_BLOCK_DIFFUSE
-
-/datum/gas_phase/proc/on_phase_change_from_gas(datum/reagent/reagent, amount, phase_into)
+/datum/physical_phase/proc/on_phase_change_away(datum/reagent_phase/phase, datum/reagent/reagent, amount, phase_from, phase_into)
 	SIGNAL_HANDLER
-	center_holder.remove_reagent(reagent, amount, phase = GAS)
+	if(phase_from == phase_into)
+		message_admins("This is being flagged when it shouldn't")
+	center_holder.remove_reagent(reagent, amount, phase = phase_from)
 	switch(phase_into)
+		if(GAS)
+			create_mist(reagent, amount, get_turf(source))
 		if(LIQUID)
 			//Create liquid
 			message_admins("creating liquid")
@@ -110,10 +104,10 @@
 			tesla_zap(source, 7, amount*100, zap_flags)
 	process()
 
-/datum/gas_phase/proc/process()
+/datum/physical_phase/process()
 	SIGNAL_HANDLER
 	if(center_holder.total_volume <= 0)
-		end_all_mist()
+		end_all_physical_phases()
 		return
 	var/delta_cell = CEILING(center_holder.total_volume/MIST_STANDARD_CELL_CAPACITY, 1)
 	if(delta_cell == current_cells)
@@ -126,77 +120,103 @@
 	var/interface_alpha =  50 + (((center_holder.total_volume % MIST_STANDARD_CELL_CAPACITY)/20) * 200)
 	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list), interface_alpha)
 
-/datum/gas_phase/proc/create_new_cell(num_cells)
+/datum/physical_phase/proc/create_new_cell(num_cells)
 	var/min_dist = 999
-	var/obj/mist/target_mist
-	for(var/obj/mist/misty in interface_mists)
-		var/misty_distance = get_dist(source, misty)
-		if(misty_distance < min_dist)
-			target_mist = misty
-			min_dist = misty_distance
-	if(!target_mist)
-		stack_trace("No target mist found! Is the interfacial list empty? Should this be a deleted controller?")
+	var/obj/phase_object/target
+	for(var/obj/phase_object/phasey in interface_cells)
+		var/phasey_distance = get_dist(source, phasey)
+		if(phasey_distance < min_dist)
+			target = phasey
+			min_dist = phasey_distance
+	if(!target)
+		stack_trace("No target physical phase found! Is the interfacial list empty? Should this be a deleted controller?")
 	//we have a target
 	var/created_new = FALSE
-	for(var/turf/new_turf in target_mist.local_turf.GetAtmosAdjacentTurfs())
-		var/obj/mist/misty_boi = locate() in new_turf //Don't spread smoke where there's already smoke!
-		if(misty_boi && misty_boi?.phase_controller.center_holder != center_holder) //Is there another cell there that's of a different controller? Lets greet them if so
-			merge_into(misty_boi.phase_controller.center_holder, MIST_STANDARD_CELL_CAPACITY)
+	for(var/turf/new_turf in target.local_turf.GetAtmosAdjacentTurfs())
+		var/obj/phase_object/phasey_boi = locate() in new_turf //Don't spread smoke where there's already smoke!
+		if(phasey_boi && phasey_boi?.phase_controller.center_holder != center_holder) //Is there another cell there that's of a different controller? Lets greet them if so
+			merge_into(phasey_boi.phase_controller.center_holder, MIST_STANDARD_CELL_CAPACITY)
 			return TRUE
-		if(misty_boi) //if it's occupied - don't enter
+		if(phasey_boi) //if it's occupied - don't enter
 			continue
 		created_new = TRUE
-		new /obj/mist(new_turf, center_holder, src)
+		new phase_object(new_turf, center_holder, src)
 		break
 	if(!created_new)//We're stable
-		message_admins("We have a mist who can't expand but think it's unstable!")
-		remove_from_interface(target_mist)
+		message_admins("We have a physical phase who can't expand but think it's unstable!")
+		remove_from_interface(target)
 	return created_new
 
-/datum/gas_phase/proc/remove_cell(num_cells) //This isn't working!
+/datum/physical_phase/proc/remove_cell(num_cells) //This isn't working!
 	var/max_dist = 0
-	var/obj/mist/target_mist
-	for(var/obj/mist/misty in interface_mists)
-		var/misty_distance = get_dist(source, misty)
-		if(misty_distance > max_dist)
-			target_mist = misty
-			max_dist = misty_distance
-	if(!target_mist)
-		stack_trace("No target mist found for removal of cells! Is the interfacial list empty? Should this be a deleted controller?")
+	var/obj/phase_object/target
+	for(var/obj/phase_object/phasey in interface_cells)
+		var/phasey_distance = get_dist(source, phasey)
+		if(phasey_distance > max_dist)
+			target = phasey
+			max_dist = phasey_distance
+	if(!target)
+		stack_trace("No target physical phase found for removal of cells! Is the interfacial list empty? Should this be a deleted controller?")
 		return
 	//we have a target
-	target_mist.begone()//This calls a removal from interface
+	target.begone()//This calls a removal from interface
 
 
-/datum/gas_phase/proc/merge_into(datum/reagents/target, amount)
+/datum/physical_phase/proc/merge_into(datum/reagents/target, amount)
 	center_holder.trans_to(target, amount)
 
 
-//datum/gas_phase/proc/create_new_mist_cell(turf/turf)
-	//var/obj/mist/mist = new obj/mist(turf, center_holder)
-	//RegisterSignal(mist, COMSIG_PHASE_STATE_STABLE, .proc/remove_from_interface)
-	//RegisterSignal(mist, COMSIG_PHASE_STATE_UNSTABLE, .proc/add_to_interface)
-
-/datum/gas_phase/proc/end_all_mist()
+/datum/physical_phase/proc/end_all_physical_phases()
 	qdel(src)
 
-/datum/gas_phase/proc/add_to_interface(obj/mist/mist)
-	if(mist in interface_mists)
+/datum/physical_phase/proc/add_to_interface(obj/phase_object/phasey)
+	if(phasey in interface_cells)
 		return
-	interface_mists += mist
+	interface_cells += phasey
+	phasey.interfacial = TRUE
 
-/datum/gas_phase/proc/remove_from_interface(obj/mist/mist)
+/datum/physical_phase/proc/remove_from_interface(obj/phase_object/phasey)
 	//debug - should work with this removed
-	var/turf/t_loc = get_turf(mist)
+	var/turf/t_loc = get_turf(phasey)
 	var/adjacent_filled
 	for(var/turf/T in t_loc.GetAtmosAdjacentTurfs())
-		var/obj/mist/misty = locate() in T //Don't spread smoke where there's already smoke!
-		if(misty)
-			add_to_interface(misty)
+		var/obj/phase_object/other_phasey = locate() in T //Don't spread smoke where there's already smoke!
+		if(other_phasey)
+			add_to_interface(other_phasey)
 			continue
 	if(!adjacent_filled)
 		message_admins("I forget why this check is here")
-	interface_mists -= mist
+	interface_cells -= phasey
+	phasey.interfacial = FALSE
 	if(current_cells <= 0)
 		qdel(src)
 
+//		~~~			GAS PHASES			~~~
+
+/datum/physical_phase/gas_phase
+	phase_object = /obj/phase_object/mist
+	phase_type = GAS
+
+/datum/physical_phase/gas_phase/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
+	. = ..()
+	RegisterSignal(reagent, COMSIG_REAGENT_DIFFUSE, .proc/override_reagent_diffusion)
+
+///Diffusion creates mist - so we want to stop that!
+/datum/physical_phase/gas_phase/proc/override_reagent_diffusion(datum/reagent, volume)
+	center_holder.remove_reagent(reagent.type, volume/5)
+	return COMSIG_REAGENT_BLOCK_DIFFUSE
+
+/datum/physical_phase/gas_phase/on_del_reagent(source, datum/reagent/reagent)
+	. = ..()
+	UnregisterSignal(reagent, COMSIG_REAGENT_DIFFUSE)
+
+/datum/physical_phase/gas_phase/proc/carbon_breathe(source, mob/living/carbon/carby, delta_time)
+	SIGNAL_HANDLER
+	center_holder.expose(carby, INGEST) //This should block transfer with a mask.
+	center_holder.trans_to(carby, 2, methods = INGEST, ignore_stomach = TRUE)
+
+//		~~~			LIQUID PHASES			~~~
+
+/datum/physical_phase/liquid_phase
+	phase_object = /obj/phase_object/liquid
+	phase_type = LIQUID

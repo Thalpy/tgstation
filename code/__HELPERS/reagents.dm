@@ -210,3 +210,27 @@
 	if(addendum)
 		temp += addendum
 	return jointext(temp, ", ")
+
+// 		~~		Physical phase related procs		~~
+
+/proc/create_mist(datum/reagent/reagent, amount, turf/source_turf)
+	var/obj/phase_object/mist/misty = locate() in source_turf
+	if(!misty)
+		//If there's no mist on our target turf - we want to join to an existing mist if it exists.
+		for(var/turf/nearby_turf in source_turf.GetAtmosAdjacentTurfs())
+			var/obj/phase_object/mist/misty_lass = locate() in nearby_turf
+			if(misty_lass)
+				if(QDELETED(misty_lass.phase_controller))
+					continue
+				new /obj/phase_object/mist(source_turf, misty_lass.phase_controller.center_holder, misty_lass.phase_controller)
+				misty_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+				return
+		//If we're truly alone, create a new one
+		new /datum/physical_phase/gas_phase(reagent, amount, reagent.holder.my_atom, source_turf)
+		reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)
+		return
+	//Edge case - we don't want deleting things to be rejuvinated
+	if(QDELETED(misty.phase_controller))
+		return
+	misty.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+	reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)

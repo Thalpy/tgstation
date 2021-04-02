@@ -9,8 +9,6 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 	runlevels = RUNLEVEL_GAME | RUNLEVEL_POSTGAME
 	///What time was it when we last ticked
 	var/previous_world_time = 0
-	///The list of datums we're phase processing
-	var/list/datum/reagents/phase_processing = list()
 
 /datum/controller/subsystem/processing/phase/Initialize()
 	. = ..()

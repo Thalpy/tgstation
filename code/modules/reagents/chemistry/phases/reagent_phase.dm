@@ -35,6 +35,7 @@
 
 ///When this current phase has a certain volume removed from it
 /datum/reagent_phase/proc/transition_from(datum/reagent/reagent, amount, target_phase)
+	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_AWAY, amount, phase, target_phase)
 
 ///When this current phase has a certain volume added to it
 /datum/reagent_phase/proc/transition_to(datum/reagent/reagent, amount, target_phase)
@@ -71,7 +72,7 @@
 
 ///liquid to gas
 /datum/reagent_phase/gas/transition_from(datum/reagent/reagent, amount, delta_time)
-	reagent.holder.adjust_specific_reagent_ph(reagent.type, )
+	reagent.holder.adjust_specific_reagent_ph(reagent.type, ) //FERMI_TODO
 	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_FROM_GAS, amount)
 
 /datum/reagent_phase/gas/transition_to(datum/reagent/reagent, amount)

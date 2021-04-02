@@ -262,7 +262,7 @@
 //Phase states and phase related procs
 ///from base of add this later because confuse code
 #define COMSIG_PHASE_STATE_DELETE "phase_state_delete"
-///from base of [datum/gas_phase/New]: (color)
+///from base of [datum/physical_phase/gas_phase/New]: (color)
 #define COMSIG_PHASE_CHANGE_COLOR "phase_change_color"
 ///from base of [datum/reagent/adjust_phase_targets]: (change_volume)
 #define COMSIG_PHASE_CHANGE_FROM_GAS "phase_from_gas"
@@ -272,6 +272,8 @@
 #define COMSIG_PHASE_CHANGE_FROM_LIQUID "phase_from_liquid"
 ///from base of [datum/reagent/adjust_phase_targets]: (change_volume)
 #define COMSIG_PHASE_CHANGE_TO_LIQUID "phase_to_liquid"
+
+#define COMSIG_PHASE_CHANGE_AWAY "phase_away_from"
 
 // Lighting:
 ///from base of [atom/proc/set_light]: (l_range, l_power, l_color, l_on)
