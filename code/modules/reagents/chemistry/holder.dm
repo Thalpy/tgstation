@@ -1334,7 +1334,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	update_pressure()
 	var/needs_processing = FALSE
 	for(var/datum/reagent/reagent as anything in reagent_list)
-		if(QDELETED(reagent))
+		if(QDELETED(reagent) || reagent.datum_flags & DF_ISPROCESSING)
 			continue
 		needs_processing = reagent.check_phase_flux()
 		if(needs_processing)
@@ -1350,6 +1350,8 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 ///Updates the pressure var of the holder - will consider the local area's pressure if it's an unsealed holder
 /datum/reagents/proc/update_pressure()
 	if(!length(reagent_list))
+		return
+	if(flags & PHYSICAL_PHASE_HOLDER)
 		return
 	if(!(flags & SEALED)) //FERMI_TODO
 		var/datum/gas_mixture/local_gas = my_atom.return_air()
@@ -1406,9 +1408,29 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	check_reagent_phase()
 	//This should be handled by phase states in flux
 
-//FERMI_TODO
 /datum/reagents/proc/spawn_solids(mob/user)
-	return
+	for(var/datum/reagent/reagent as anything in reagent_list)
+		for(var/datum/reagent_phase/phase_state in phase_states)
+			if(SOLID == phase_state.phase)
+				var/amount = reagent.get_phase_volume(SOLID)
+				while(amount > 0)
+					var/obj/item/stack/solid_phase_object/reagent_stack = new /obj/item/stack/solid_phase_object(get_turf(my_atom), amount/5)
+					reagent_stack.set_reagent(reagent, min(amount, 250))
+					amount -= 250
+					user.put_in_hands(reagent_stack)
+				reagent.set_phase_percent(SOLID, 0)
+				to_chat(user, "You take the solid [reagent.name] out of the [my_atom]")
+				continue
+			if(POWDER == phase_state.phase)
+				var/amount = reagent.get_phase_volume(POWDER)
+				while(amount > 0)
+					var/obj/item/stack/solid_phase_object/reagent_stack = new /obj/item/stack/solid_phase_object(get_turf(my_atom), amount/5)
+					reagent_stack.set_reagent(reagent, min(amount, 250))
+					amount -= 250
+					user.put_in_hands(reagent_stack)
+				reagent.set_phase_percent(POWDER, 0)
+				to_chat(user, "You take the powdered [reagent.name] out of the [my_atom]")
+				continue
 
 
 /* 		~~~		END	Phase/pressure methods	END		~~~		 */

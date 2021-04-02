@@ -14,11 +14,17 @@
 	var/cost_on_delete = TRUE
 	///What type of phase we are
 	var/phase
+	///What temperature we're at
+	var/temperature
+	///What pressure we're at
+	var/pressure
 
 //For solids - see solid phase object
 
 /*
 - I don't think these need to move, just move the center and delete entries to encourage movement - they're thick!
+Todo:
+- prevent this obj from being grabbed
 */
 
 /obj/phase_object/New(turf/open/input_turf, datum/reagents/center_holder, datum/physical_phase/input_phase_controller)
@@ -39,6 +45,7 @@
 	RegisterSignal(local_turf, COMSIG_ATOM_EXIT, .proc/unflag_entree)
 	RegisterSignal(phase_controller, COMSIG_PHASE_STATE_DELETE, .proc/begone)
 	RegisterSignal(phase_controller, COMSIG_PHASE_CHANGE_COLOR, .proc/recalculate_color)
+	RegisterSignal(local_turf, COMSIG_TURF_EXPOSE, .proc/update_cell_temperature)
 	recalculate_color()
 	phase_controller.current_cells++
 	//Check to see if we're on the interface - i.e we're not surrounded.
@@ -73,6 +80,11 @@
 	if(interfacial)
 		alpha = interface_alpha
 
+/obj/phase_object/proc/update_cell_temperature(datum/source, datum/gas_mixture/air, exposed_temperature)
+	SIGNAL_HANDLER
+	temperature = exposed_temperature
+	pressure = air.return_pressure()
+
 /obj/phase_object/proc/begone(source)
 	SIGNAL_HANDLER
 	if(!QDELETED(src))
@@ -80,7 +92,6 @@
 		qdel(src)
 	else
 		message_admins("attempted to delete phase cell when it was flagged to delete")
-
 
 /obj/phase_object/mist
 	name = "mist cloud"

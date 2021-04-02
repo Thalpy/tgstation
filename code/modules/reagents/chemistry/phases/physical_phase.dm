@@ -42,7 +42,7 @@
 	RegisterSignal(source, COMSIG_PARENT_QDELETING, .proc/on_del_source)
 	//Add reagents
 	center_holder.my_atom = new phase_object(location, center_holder, src)
-	center_holder.add_reagent(reagent.type, volume) //Does not remove volume from original holder - should be handled outside of that
+	center_holder.add_reagent(reagent.type, volume, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity) //Does not remove volume from original holder - should be handled outside of that
 	SSphase_states.active_state_controllers[phase_type] += src
 
 /datum/physical_phase/Destroy(force, ...)
@@ -105,7 +105,7 @@
 	process()
 
 /datum/physical_phase/process()
-	SIGNAL_HANDLER
+	//SIGNAL_HANDLER
 	if(center_holder.total_volume <= 0)
 		end_all_physical_phases()
 		return
@@ -220,3 +220,4 @@
 /datum/physical_phase/liquid_phase
 	phase_object = /obj/phase_object/liquid
 	phase_type = LIQUID
+

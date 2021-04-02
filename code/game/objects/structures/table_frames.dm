@@ -45,7 +45,8 @@
 			to_chat(user, "<span class='notice'>You start adding [material] to [src]...</span>")
 			if(!do_after(user, 2 SECONDS, target = src) || !material.use(1) || (locate(/obj/structure/table) in loc))
 				return
-			make_new_table(material.tableVariant)
+			var/obj/structure/table/table = make_new_table(material.tableVariant)
+			table.post_create_table(material)
 		else if(istype(material, /obj/item/stack/sheet))
 			if(material.get_amount() < 1)
 				to_chat(user, "<span class='warning'>You need one sheet to do this!</span>")
@@ -65,15 +66,16 @@
 
 
 /obj/structure/table_frame/proc/make_new_table(table_type, custom_materials, carpet_type) //makes sure the new table made retains what we had as a frame
-	var/obj/structure/table/T = new table_type(loc)
-	T.frame = type
-	T.framestack = framestack
-	T.framestackamount = framestackamount
+	var/obj/structure/table/table = new table_type(loc)
+	table.frame = type
+	table.framestack = framestack
+	table.framestackamount = framestackamount
 	if (carpet_type)
-		T.buildstack = carpet_type
+		table.buildstack = carpet_type
 	if(custom_materials)
-		T.set_custom_materials(custom_materials)
+		table.set_custom_materials(custom_materials)
 	qdel(src)
+	return table
 
 /obj/structure/table_frame/deconstruct(disassembled = TRUE)
 	new framestack(get_turf(src), framestackamount)
