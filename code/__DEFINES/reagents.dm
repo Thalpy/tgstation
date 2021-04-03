@@ -63,7 +63,7 @@
 #define CHEMICAL_MAXIMUM_TEMPERATURE 99999
 
 ///The default purity of all non reacted reagents
-#define REAGENT_STANDARD_PUIRTY 0.75
+#define REAGENT_STANDARD_PURITY 0.75
 ///The (normal) maximum purity of a reagent
 #define REAGENT_MAXIMUM_PURITY 1
 
