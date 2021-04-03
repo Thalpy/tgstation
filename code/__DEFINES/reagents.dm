@@ -28,8 +28,6 @@
 #define REAGENT_HOLDER_ALIVE (1<<9)
 ///If the container is sealed - will trap in gas, but will increase in pressure
 #define SEALED (1<<10)
-///If the holder's pressure if updated by it's physical state
-#define PHYSICAL_PHASE_HOLDER (1<<11)
 
 // Is an open container for all intents and purposes.
 #define OPENCONTAINER (REFILLABLE | DRAINABLE | TRANSPARENT)

@@ -45,30 +45,33 @@ Todo:
 	phase_controller = input_phase_controller
 	RegisterSignal(local_turf, COMSIG_ATOM_ENTERED, .proc/flag_entree)
 	RegisterSignal(local_turf, COMSIG_ATOM_EXIT, .proc/unflag_entree)
-	RegisterSignal(phase_controller, COMSIG_PHASE_STATE_DELETE, .proc/begone)
-	RegisterSignal(phase_controller, COMSIG_PHASE_CHANGE_COLOR, .proc/recalculate_color)
 	RegisterSignal(local_turf, COMSIG_TURF_EXPOSE, .proc/update_cell_temperature)
-	recalculate_color()
-	phase_controller.current_cells++
+	phase_controller.current_cells += src
 	//Check to see if we're on the interface - i.e we're not surrounded.
 	for(var/turf/nearby_turf in input_turf.GetAtmosAdjacentTurfs())
 		var/obj/phase_object/phasey = locate() in nearby_turf //This seems bad
-		if(phasey.phase == phase) //If there's a mist there, keep looking
+		if(phasey?.phase == phase) //If there's a mist there, keep looking
 			continue
 		phase_controller.add_to_interface(src)
 		break
-
+	//I might've meant to add something else here
 
 /obj/phase_object/Destroy()
 	UnregisterSignal(local_turf, COMSIG_ATOM_ENTERED)
 	UnregisterSignal(local_turf, COMSIG_ATOM_EXIT)
-	UnregisterSignal(phase_controller, COMSIG_PHASE_CHANGE_COLOR)
-	UnregisterSignal(phase_controller, COMSIG_PHASE_STATE_DELETE)
 	phase_controller.remove_from_interface(src)
-	phase_controller.current_cells--
+	phase_controller.current_cells -= src
 	if(cost_on_delete)
 		phase_controller.center_holder.remove_all(phase_controller.cell_capacity)
 	..()
+
+/obj/phase_object/proc/add_reagent(datum/reagent/reagent, amount)
+	phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+	phase_controller.shift_center(x, y, z, amount)
+
+/obj/phase_object/proc/remove_reagent(datum/reagent/reagent, amount)
+	phase_controller.center_holder.remove_reagent(reagent.type, amount, phase = phase)
+	phase_controller.shift_center(x, y, z, -amount)
 
 /obj/phase_object/proc/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
 	SIGNAL_HANDLER
@@ -86,6 +89,7 @@ Todo:
 	SIGNAL_HANDLER
 	temperature = exposed_temperature
 	pressure = air.return_pressure()
+	phase_controller.update_temp_pressure = TRUE
 
 /obj/phase_object/proc/begone(source)
 	SIGNAL_HANDLER
@@ -93,12 +97,12 @@ Todo:
 		cost_on_delete = FALSE
 		qdel(src)
 	else
-		message_admins("attempted to delete phase cell when it was flagged to delete")
+		stack_trace("attempted to delete phase cell when it was flagged to delete")
 
 /obj/phase_object/mist
 	name = "mist cloud"
 	desc = "A cloud of gaseous reagents. Be careful of breathing this stuff in!"
-	icon_state = "mist"
+	icon_state = "gas_phase"
 	phase = GAS
 	layer = ABOVE_NORMAL_TURF_LAYER
 	cell_capacity = 20
@@ -118,7 +122,7 @@ Todo:
 	var/mob/living/carbon/carby = moveable
 	if(!iscarbon(carby))
 		return
-	if(phase_controller.signal_procs[carby][COMSIG_CARBON_BREATHE_TURF]) //If we've already flagged a signal - then don't reflag
+	if(phase_controller.signal_procs[carby]?[COMSIG_CARBON_BREATHE_TURF]) //If we've already flagged a signal - then don't reflag
 		message_admins("Mob already flagged")
 		return
 	phase_controller.RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, /datum/physical_phase/gas_phase/proc/carbon_breathe)
@@ -134,11 +138,10 @@ Todo:
 			return //we're in the same cloud so keep checking their breath
 	phase_controller.UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
 
-
 /obj/phase_object/liquid
 	name = "Liquid"
 	desc = "A pool of liquid reagents. Be careful of swimming in this stuff!"
-	icon_state = "liquid"
+	icon_state = "liquid_phase"
 	alpha = 200
 	phase = LIQUID
 	layer = ABOVE_OPEN_TURF_LAYER

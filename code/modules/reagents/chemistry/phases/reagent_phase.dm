@@ -45,12 +45,18 @@
 /datum/reagent_phase/proc/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	return calculation_method.determine_phase_percent(reagent, temperature, pressure)
 
+
 ///Used to calculate the GUI phase graph output of the phases x value
 /datum/reagent_phase/proc/get_graph_coords(datum/reagent/reagent)
 	var/list/profile = list()
 	profile = calculation_method.get_graph_coords(reagent)
 	profile["color"] = color
 	return profile
+
+///Makes a physical (physical_phase / phase_object) state out of a reagent
+/datum/reagent_phase/proc/make_physical(datum/reagent/reagent, volume, turf/target_turf)
+	if(volume <= 0.05)
+		return FALSE
 
 //Default phase gas
 /datum/reagent_phase/gas
@@ -78,6 +84,10 @@
 
 /datum/reagent_phase/gas/transition_to(datum/reagent/reagent, volume)
 
+/datum/reagent_phase/gas/make_physical(datum/reagent/reagent, volume, turf/target_turf)
+	if(volume <= 0.05)
+		return FALSE
+	create_mist(reagent, volume, target_turf)
 
 ///If we're a gas and we're in an unsealed chamber
 /datum/reagent_phase/gas/proc/dissipate(datum/reagent/reagent, volume)
@@ -90,8 +100,8 @@
 	reagent.diffuse(volume)
 	if(!QDELETED(reagent))
 		reagent.check_phase_ratio()
+		return FALSE
 	return TRUE
-
 
 ///Default liquid
 /datum/reagent_phase/liquid
@@ -100,6 +110,11 @@
 	color = "#3dbe47"
 	calculation_method = /datum/phase_calc/linear/mass_effect/liquid
 
+/datum/reagent_phase/liquid/make_physical(datum/reagent/reagent, volume, turf/target_turf)
+	if(volume <= 0.05)
+		return FALSE
+	create_liquid(reagent, volume, target_turf)
+
 ///Default solid
 /datum/reagent_phase/solid
 	phase = SOLID
@@ -107,6 +122,11 @@
 	density = 1.5
 	color = "#e4f582"
 	calculation_method = /datum/phase_calc/linear/mass_effect/solid
+
+/datum/reagent_phase/solid/make_physical(datum/reagent/reagent, volume, turf/target_turf)
+	if(volume <= 0.05)
+		return FALSE
+	create_solid(reagent, volume, target_turf)
 
 ///Ground powder
 ///This is a phase that is never added to by self transition (i.e. powder is never made by a reagent on it's own) - Methods like reagents.grind() or reagent.full_phase_transition() add to this
@@ -117,6 +137,11 @@
 	density = 1.4
 	color = "#e78c4f"
 	calculation_method = null //uses solid - we want this to crash if it tries to calculate otherwise
+
+/datum/reagent_phase/solid/powder/make_physical(datum/reagent/reagent, volume, turf/target_turf)
+	if(volume <= 0.05)
+		return FALSE
+	create_powder(reagent, volume, target_turf)
 
 /datum/reagent_phase/solid/powder/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
 	if(reagent.phase_states[src] == 0) //Save some calculations - we can never generate powder this way

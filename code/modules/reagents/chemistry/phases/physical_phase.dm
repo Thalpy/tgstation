@@ -5,6 +5,11 @@
 * Gas dissipates - reduces in volume at the edges of it's area
 * This is not meant to be atmos 2.0 - our granularity is higher compared to atmos so we take steps to ensure we're a much lower cost
 * This hooks up the the mist obj which does most of the math with signals - Welcome to signal city
+*
+* Things to change for optimisation
+* * Have update_pressure() check for delta time before updating, if a lot of things are being added it might call it a lot
+* * Have a min delta time for process
+* * Instead of a moving central cell, just have the inital one as center
 */
 
 /datum/physical_phase
@@ -13,9 +18,7 @@
 	///The location atom we're tied to
 	var/atom/source
 	///How big our cell cloud is - i.e. the total number of cells we're on - affects diffuse rate
-	var/current_cells = 0
-	///The sum of the volume in the mist - this is cells * capacity
-	//var/sum_volume
+	var/list/obj/phase_object/current_cells = list()
 	///The interfacial cells - all cells within the center are considered "stable" so we don't process their movement
 	var/list/obj/phase_object/interface_cells = list()
 	///The type of phase object we create
@@ -24,6 +27,12 @@
 	var/phase_type
 	///The u/volume capacity of one cell
 	var/cell_capacity
+	///The x coordinate of the center of the cloud
+	var/center_x
+	///The y coordinate of the center of the cloud
+	var/center_y
+	///If we should update pressure and temperature
+	var/update_temp_pressure = TRUE
 
 /datum/physical_phase/New(datum/reagent/reagent, volume, atom/reagent_source, turf/location)
 	. = ..()
@@ -34,23 +43,35 @@
 		stack_trace("Attempted to add a reagent to a gas_phase with a volume less than 0.05")
 		return FALSE
 	center_holder = new /datum/reagents(3000)
-	source = reagent_source
 	//Flagging our signals
-	RegisterSignal(center_holder, COMSIG_REAGENTS_NEW_REAGENT, .proc/on_new_reagent) //Todo: change these 3 to flag when
+	RegisterSignal(center_holder, COMSIG_REAGENTS_NEW_REAGENT, .proc/on_new_reagent)
 	RegisterSignal(center_holder, COMSIG_REAGENTS_DEL_REAGENT, .proc/on_del_reagent)
 	RegisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES, .proc/process)
-	RegisterSignal(source, COMSIG_PARENT_QDELETING, .proc/on_del_source)
+	RegisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PRESSURE, .proc/update_temp_and_pressure)
 	//Add reagents
-	center_holder.my_atom = new phase_object(location, center_holder, src)
+	var/obj/phase_object/new_phase_object = new phase_object(location, center_holder, src)
+	//Set atom first - so we know where we are, so we can explode
+	center_holder.my_atom = new_phase_object
+	//Then add reagent
 	center_holder.add_reagent(reagent.type, volume, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity) //Does not remove volume from original holder - should be handled outside of that
+	//Update color and alpha
+	new_phase_object.recalculate_color(src, mix_color_from_reagents(center_holder.reagent_list), 150 + (((center_holder.total_volume % cell_capacity)/20) * 100))
+	//Track active states for panic destroy/debugging
 	SSphase_states.active_state_controllers[phase_type] += src
+	//Set our center - though maybe I should make the center based off reagent input (yes do this FERMI_TODO)
+	source = new_phase_object
+	RegisterSignal(source, COMSIG_PARENT_QDELETING, .proc/on_del_source)
+	center_x = new_phase_object.x
+	center_y = new_phase_object.y
 
 /datum/physical_phase/Destroy(force, ...)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_NEW_REAGENT)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_DEL_REAGENT)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES)
+	UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PRESSURE)
 	UnregisterSignal(source, COMSIG_PARENT_QDELETING)
-	SEND_SIGNAL(src, COMSIG_PHASE_STATE_DELETE)
+	for(var/obj/phase_object/del_phase_object)
+		del_phase_object.begone()
 	for(var/datum/reagent/reagent as anything in center_holder.reagent_list)
 		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY) //Clean up signals
 	QDEL_NULL(center_holder)
@@ -60,37 +81,82 @@
 ///When we lose our origin atom - we backup to the cell on it's location - if there is none then we default backup to any avalible interface
 /datum/physical_phase/proc/on_del_source()
 	SIGNAL_HANDLER
+	if(!current_cells.len)
+		qdel(src)
+		return FALSE
 	var/turf/source_turf = get_turf(source)
 	///If we're deleting our source, but can't find where it was, then we recenter to any avalible interface as a backup
 	if(!source_turf)
-		source = pick(interface_cells)
-		return FALSE
-	var/obj/phase_object/phasey = locate() in source_turf
-	if(phasey)
-		source = phasey
+		var/obj/phase_object/cell = pick(current_cells)
+		source_turf = locate(center_x, center_y, cell.z)
+		if(!source_turf)
+			stack_trace("Unable to find backup turf when phase cell of type [phase_type] was destroyed!")
+			source = cell
+			return FALSE
+	//Now we process through the current cells and find the closest replacement
+	var/min_dist = 999
+	var/obj/phase_object/target
+	for(var/obj/phase_object/phasey in current_cells)
+		if(QDELETED(phasey)) //Incase an explosion took out a chunk
+			continue
+		var/phasey_distance = get_dist(source_turf, phasey)
+		if(phasey_distance < min_dist)
+			target = phasey
+			min_dist = phasey_distance
+		source = target
 		return TRUE
-	source = pick(interface_cells)
-	return FALSE
+	stack_trace("Unable to find a replacement cell, when we have suitable cells! This may have been because of an explosion.")
+	qdel(src)
+
+/**
+ * Shifts the center of our controller - so that it'll try to create things near it, and remove things far away from it.
+ * That way it shifts around!
+ * Passing a negative magnitude will move it away from a point, positive magnitude will move it towards
+ * Movement is relative to it's holder volume (i.e. size)
+ *
+ * arguments:
+ * * source_x: the x coord of the area we're moving to
+ * * source_x: the x coord of the area we're moving to
+ * * source_z: the z level we're on - currently doesn't spread cross z level, but that shouldn't be too hard to do eventually
+ * * magnitude: the size of the movement, to move it entirely to the input position, add a magnitude equal to the central_holder volume
+ */
+/datum/physical_phase/proc/shift_center(source_x, source_y, source_z, magnitude)
+	var/delta_x = source_x - center_x
+	var/delta_y = source_y - center_y
+	center_x = center_x + ((delta_x / center_holder.total_volume) * magnitude)
+	center_y = center_y + ((delta_y / center_holder.total_volume) * magnitude)
+	var/target_x = round(center_x)
+	var/target_y = round(center_y)
+	//Are we in the same spot?
+	if(source.x == target_x && source.y == target_y)
+		return
+	//If not, lets move over!
+	var/turf/location = locate(target_x, target_y, source_z)
+	for(var/obj/phase_object/other_phase in location.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
+		if(other_phase.phase != phase_type || other_phase.phase_controller != src)
+			continue
+		source = other_phase
+
 
 /datum/physical_phase/proc/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
 	SIGNAL_HANDLER
 	RegisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY, .proc/on_phase_change_away)
-	reagent.chemical_flags &= REAGENT_STATE_PHYSICAL_PHASE
-	///Update mist color
-	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list))
+	reagent.chemical_flags |= REAGENT_STATE_PHYSICAL_PHASE
+	//process()
 
+//Signal works
 /datum/physical_phase/proc/on_del_reagent(source, datum/reagent/reagent)
 	SIGNAL_HANDLER
 	UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY)
-	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list))
-	//UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_TO_GAS)
+	//process()
 
-/datum/physical_phase/proc/on_phase_change_away(datum/reagent_phase/phase, datum/reagent/reagent, amount, phase_from, phase_into)
+/datum/physical_phase/proc/on_phase_change_away(datum/reagent/reagent, amount, datum/reagent_phase/phase_into)
 	SIGNAL_HANDLER
-	if(phase_from == phase_into)
+	if(phase_type == phase_into.phase)
 		message_admins("This is being flagged when it shouldn't")
-	center_holder.remove_reagent(reagent, amount, phase = phase_from)
-	switch(phase_into)
+		return
+	center_holder.remove_reagent(reagent, amount, phase = phase_type)
+	switch(phase_into.phase)
 		if(GAS)
 			create_mist(reagent, amount, get_turf(source))
 		if(LIQUID)
@@ -103,24 +169,47 @@
 			var/zap_flags = ZAP_MOB_DAMAGE | ZAP_OBJ_DAMAGE | ZAP_MOB_STUN
 			tesla_zap(source, 7, amount*100, zap_flags)
 		if(POWDER)
-			stack_trace("Attemptung to transform INTO powder from [phase_from] in a physical phase. This shouldn't be happening!")
+			stack_trace("Attemptung to transform INTO powder from [phase_type] in a physical phase. This shouldn't be happening!")
 	process()
 
+/datum/physical_phase/proc/update_temp_and_pressure()
+	if(update_temp_pressure == FALSE)
+		return
+	var/sum_pressure
+	var/sum_temp
+	for(var/obj/phase_object/this_phase_object in current_cells)
+		sum_pressure += this_phase_object.pressure
+		sum_temp += this_phase_object.temperature
+	///We hard set here - since we don't want to use the updating proc methods - they call extra things we don't want atm
+	///If you're here to copy paste, generally don't do this, unless you don't want your phases updated by setting the temperature
+	center_holder.pressure = sum_pressure / current_cells.len
+	center_holder.chem_temp = sum_temp / current_cells.len
+	return COMPONENT_OVERRIDE_PRESSURE_UPDATE
+
+//Process is tied to the diffusion tick -
 /datum/physical_phase/process()
 	//SIGNAL_HANDLER
 	if(center_holder.total_volume <= 0)
 		end_all_physical_phases()
 		return
 	var/delta_cell = CEILING(center_holder.total_volume/cell_capacity, 1)
-	if(delta_cell == current_cells)
+	if(delta_cell == current_cells.len)
 		return
-	if(delta_cell > current_cells)
+	if(delta_cell > current_cells.len)
 		create_new_cell(delta_cell) //Only make 1 cell at a time to make it look like it's spreading!
 		//stack_trace("Removal of gas is trying to create more cells!")
-	else if(delta_cell < current_cells)
+	else if(delta_cell < current_cells.len)
 		remove_cell(delta_cell)
-	var/interface_alpha =  50 + (((center_holder.total_volume % cell_capacity)/20) * 200)
-	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list), interface_alpha)
+	update_cells_color()
+
+/datum/physical_phase/proc/update_cells_color()
+	var/new_color = mix_color_from_reagents(center_holder.reagent_list)
+	var/new_alpha = 150 + (((center_holder.total_volume % cell_capacity)/20) * 100)
+	var/obj/phase_object/check = interface_cells[1]
+	if(check.color == new_color && check.alpha == new_alpha)
+		return
+	for(var/obj/phase_object/this_phase_object)
+		this_phase_object.recalculate_color(new_color, new_alpha)
 
 /datum/physical_phase/proc/create_new_cell(num_cells)
 	var/min_dist = 999
@@ -169,6 +258,8 @@
 
 
 /datum/physical_phase/proc/end_all_physical_phases()
+	if(current_cells.len)
+		message_admins("physical phase is being deleted when there's still live cells in it")
 	qdel(src)
 
 /datum/physical_phase/proc/add_to_interface(obj/phase_object/phasey)
@@ -216,7 +307,7 @@
 /datum/physical_phase/gas_phase/proc/carbon_breathe(source, mob/living/carbon/carby, delta_time)
 	SIGNAL_HANDLER
 	center_holder.expose(carby, INGEST) //This should block transfer with a mask.
-	center_holder.trans_to(carby, 2, methods = INGEST, ignore_stomach = TRUE)
+	center_holder.trans_to(carby, delta_time, methods = INGEST, ignore_stomach = TRUE)
 
 //		~~~			LIQUID PHASES			~~~
 

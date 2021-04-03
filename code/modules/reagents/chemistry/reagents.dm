@@ -537,8 +537,8 @@ Primarily used in reagents/reaction_agents
 		sum_ratio += phase_states[phase_state]
 	sum_ratio = round(sum_ratio, CHEMICAL_VOLUME_ROUNDING) //Pesky 0.0000001s
 	if(sum_ratio <= 0)
-		stack_trace("reagent has a sum ratio of 0 which we want to avoid happening")
-		return //If we're being deleted then our sum will be 0
+		message_admins("reagent has a sum ratio of 0 which we want to avoid happening")
+		return FALSE //If we're being deleted then our sum will be 0
 	if(sum_ratio != 1) //This can happen from set_phase_percent()
 		if(debug)
 			message_admins("[type] didn't have correct ratios! This is not an error you can ignore! ratio sum: [sum_ratio]")

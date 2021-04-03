@@ -252,6 +252,10 @@
 #define COMSIG_REAGENTS_CRAFTING_PING "reagents_crafting_ping"
 ///from base of [/datum/controller/subsystem/processing/phase/fire]: ()
 #define COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES "reagents_physical_phase_state_update"
+///from base of [/datum/reagents/proc/update_pressure()]: ()
+#define COMSIG_REAGENTS_UPDATE_PRESSURE "reagents_update_pressure"
+	/// Prevents the reagents datum from updating it's pressure if this is retruned from above signal - used for physical phases
+	#define COMPONENT_OVERRIDE_PRESSURE_UPDATE (1<<0)
 
 ///from base of [/datum/reagent/proc/diffuse]: (amount)
 #define COMSIG_REAGENT_DIFFUSE "reagent_diffuse"

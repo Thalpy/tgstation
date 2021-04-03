@@ -7,23 +7,22 @@
 	//the reagent type this thing is
 	var/reagent_type
 
-/obj/item/stack/solid_phase_object/Initialize(mapload, new_amount, merge, list/mat_override, mat_amt)
+/obj/item/stack/solid_phase_object/Initialize(mapload, new_amount, merge, list/mat_override, mat_amt, datum/reagent/reagent)
+	create_reagents(SOLID_PHYSICAL_PHASE_CAPACITY) //5u per 1 stack
+	name += " [reagent.name]"
+	desc += " [reagent.name]"
+	reagent_type = reagent.type
+	color = reagent.color
+	grind_results = list(reagent.type = REAGENT_VOL_TO_STACK_MULTIPLIER)
+	reagents.add_reagent(reagent.type, amount, added_purity = reagent.purity)
 	. = ..()
-	RegisterSignal(reagents, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES, .proc/process)
+	RegisterSignal(reagents, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES, .proc/reagent_process)
+	//Check physical states and setup temp signals, but otherwise doesn't need processing
 
 /obj/item/stack/solid_phase_object/Destroy()
 	UnregisterSignal(reagents, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES)
 	QDEL_NULL(reagents)
 	. = ..()
-
-/obj/item/stack/solid_phase_object/proc/set_reagent(datum/reagent/reagent, amount)
-	name += " [reagent.name]"
-	desc += " [reagent.name]"
-	reagent_type = reagent.type
-	color = reagent.color
-	create_reagents(SOLID_PHYSICAL_PHASE_CAPACITY) //5u per 1 stack
-	grind_results = list(reagent.type = REAGENT_VOL_TO_STACK_MULTIPLIER)
-	reagents.add_reagent(reagent.type, amount, added_purity = reagent.purity)
 
 /obj/item/stack/solid_phase_object/use(used, transfer = FALSE, check = TRUE) // return 0 = borked; return 1 = had enough
 	if(used * REAGENT_VOL_TO_STACK_MULTIPLIER > reagents.total_volume)
@@ -33,20 +32,7 @@
 	reagents.remove_all(used*REAGENT_VOL_TO_STACK_MULTIPLIER)
 	return TRUE
 
-/obj/item/stack/solid_phase_object/can_merge(obj/item/stack/check)
-	if(!..()) //if parent checks are false
-		return FALSE
-	var/obj/item/stack/solid_phase_object/check_phase = check
-	if(check_phase.reagents.has_reagent(reagent_type))
-		return TRUE
-	return FALSE
-
-/obj/item/stack/solid_phase_object/merge(obj/item/stack/S, limit)
-	var/transfer = ..()
-	reagents.add_reagent(reagent_type, transfer*REAGENT_VOL_TO_STACK_MULTIPLIER)
-	color = mix_color_from_reagents(reagents.reagent_list)
-
-/obj/item/stack/solid_phase_object/process()
+/obj/item/stack/solid_phase_object/proc/reagent_process()
 	color = mix_color_from_reagents(reagents.reagent_list)
 	if(reagents.total_volume <= 0)
 		qdel(src)
@@ -56,13 +42,32 @@
 	desc = "A solid mass of" //Reagent name here
 	icon_state = "reagent_phase_solid"
 	tableVariant = /obj/structure/table/reagents
-	//the reagent type this thing is
+	reagent_type = SOLID
+
+/obj/item/stack/solid_phase_object/solid/can_merge(obj/item/stack/check)
+	if(!..()) //if parent checks are false
+		return FALSE
+	var/obj/item/stack/solid_phase_object/check_phase = check
+	if(check_phase.reagents.has_reagent(reagent_type))
+		return TRUE
+	return FALSE
+
+/obj/item/stack/solid_phase_object/solid/merge(obj/item/stack/S, limit)
+	var/transfer = ..()
+	reagents.add_reagent(reagent_type, transfer*REAGENT_VOL_TO_STACK_MULTIPLIER)
+	color = mix_color_from_reagents(reagents.reagent_list)
 
 /obj/item/stack/solid_phase_object/powder
 	name = "Powdered"
-	desc = "A ground up mass of" //Reagent name here
+	desc = "A ground up mass of reagents" //Reagent name here
 	icon_state = "reagent_phase_powder"
-	tableVariant = null
+	reagent_type = POWDER
+
+/obj/item/stack/solid_phase_object/powder/merge(obj/item/stack/incoming_stack, limit)
+	var/transfer = ..()
+	var/obj/item/stack/solid_phase_object/incoming_phase = incoming_stack
+	incoming_phase.reagents.trans_to(reagents, transfer*REAGENT_VOL_TO_STACK_MULTIPLIER)
+	color = mix_color_from_reagents(reagents.reagent_list)
 
 /obj/structure/table/reagents
 	name = "Reagent Table"

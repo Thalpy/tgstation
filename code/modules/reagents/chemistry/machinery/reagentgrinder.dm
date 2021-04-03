@@ -300,7 +300,6 @@
 		var/obj/item/I = i
 		if(I.grind_results)
 			grind_item(i, user)
-	beaker?.reagents.grind_reagents()
 
 /obj/machinery/reagentgrinder/proc/grind_item(obj/item/I, mob/user) //Grind results can be found in respective object definitions
 	if(I.on_grind(src) == -1) //Call on_grind() to change amount as needed, and stop grinding the item if it returns -1
@@ -331,3 +330,5 @@
 			var/amount = beaker.reagents.get_reagent_amount(/datum/reagent/consumable/eggyolk)
 			beaker.reagents.remove_reagent(/datum/reagent/consumable/eggyolk, amount)
 			beaker.reagents.add_reagent(/datum/reagent/consumable/mayonnaise, amount)
+	//Convert solids into powder
+	beaker.reagents.grind_reagents()

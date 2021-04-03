@@ -9,4 +9,4 @@ PROCESSING_SUBSYSTEM_DEF(phase_states)
 	flags = SS_NO_FIRE| SS_NO_INIT
 	runlevels = RUNLEVEL_GAME | RUNLEVEL_POSTGAME
 	///Currently active physical states
-	var/list/active_state_controllers = list()
+	var/list/active_state_controllers = list(GAS = list(), LIQUID = list(), SOLID = list(), POWDER = list())

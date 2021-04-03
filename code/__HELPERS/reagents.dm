@@ -237,13 +237,13 @@
 				misty_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
 				return
 		//If we're truly alone, create a new one
-		new /datum/physical_phase/gas_phase(reagent, amount, reagent.holder.my_atom, source_turf)
+		new /datum/physical_phase/gas_phase(reagent, amount, reagent.holder?.my_atom, source_turf)
 		reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)
 		return
 	//Edge case - we don't want deleting things to be rejuvinated
 	if(QDELETED(misty.phase_controller))
 		return
-	misty.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+	misty.add_reagent(reagent, amount)
 	reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)
 
 /**
@@ -270,13 +270,13 @@
 				moist_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
 				return
 		//If we're truly alone, create a new one
-		new /datum/physical_phase/gas_phase(reagent, amount, reagent.holder.my_atom, source_turf)
+		new /datum/physical_phase/liquid_phase(reagent, amount, reagent.holder.my_atom, source_turf)
 		reagent.holder.remove_reagent(reagent.type, amount, phase = LIQUID)
 		return
 	//Edge case - we don't want deleting things to be rejuvinated
 	if(QDELETED(moist.phase_controller))
 		return
-	moist.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+	moist.add_reagent(reagent, amount)
 	reagent.holder.remove_reagent(reagent.type, amount, phase = LIQUID)
 
 /**
@@ -303,8 +303,8 @@
 			return
 	///Should only occur if all crystals are full, or there are none.
 	while(amount > 0)
-		var/obj/item/stack/solid_phase_object/solid/reagent_stack = new /obj/item/stack/solid_phase_object/solid(source_turf, amount/5)
-		reagent_stack.set_reagent(reagent, min(amount, 250))
+		var/obj/item/stack/solid_phase_object/solid/reagent_stack = new /obj/item/stack/solid_phase_object/solid(source_turf, amount/5, reagent)
+		//reagent_stack.set_reagent(reagent, min(amount, 250))
 		amount -= 250
 		reagent.holder.remove_reagent(reagent.type, 250, phase = SOLID)
 
@@ -332,8 +332,8 @@
 			return
 	///Should only occur if all crystals are full, or there are none.
 	while(amount > 0)
-		var/obj/item/stack/solid_phase_object/powder/reagent_stack = new /obj/item/stack/solid_phase_object/powder(source_turf, amount/5)
-		reagent_stack.set_reagent(reagent, min(amount, 250))
+		var/obj/item/stack/solid_phase_object/powder/reagent_stack = new /obj/item/stack/solid_phase_object/powder(source_turf, amount/5, reagent)
+		//reagent_stack.set_reagent(reagent, min(amount, 250))
 		amount -= 250
 		reagent.holder.remove_reagent(reagent.type, 250, phase = POWDER)
 
