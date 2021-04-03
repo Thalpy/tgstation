@@ -446,12 +446,12 @@ Primarily used in reagents/reaction_agents
 
 	for(var/datum/reagent_phase/phase in positive_budget) //Positive
 		if(positive_budget[phase] > positive_changes)
-			phase.transition_from(src, positive_changes * volume)
+			phase.transition_to(src, positive_changes * volume)
 			phase_states[phase] = phase_states[phase] + positive_changes
 			debug += "[phase.phase] is overbudget, adding [positive_changes] instead of [positive_budget[phase]] and setting positive change to 0, final ratio: [phase_states[phase]]\n"
 			positive_changes = 0
 		else
-			phase.transition_from(src, positive_budget[phase] * volume)
+			phase.transition_to(src, positive_budget[phase] * volume)
 			phase_states[phase] = phase_states[phase] + positive_budget[phase]
 			positive_changes -= positive_budget[phase]
 			debug += "[phase.phase] adding [positive_budget[phase]] and setting positive budget to [positive_changes] with final ratio of [phase_states[phase]]\n"
@@ -481,6 +481,13 @@ Primarily used in reagents/reaction_agents
 		phase_states[phase] = round(ratio, CHEMICAL_QUANTISATION_LEVEL)
 	check_phase_ratio(debug = "yes")
 	STOP_PROCESSING(SSphase, src)
+
+/datum/reagent/proc/full_phase_transition(phase_from, phase_into)
+	if(!get_phase_ratio(phase_from))
+		return FALSE
+	set_phase_percent(phase_into, get_phase_ratio(phase_from), check_ratio = FALSE)
+	set_phase_percent(phase_from, 0, check_ratio = FALSE)
+	check_phase_ratio()
 
 ///Calls the tick proc on each of the phases - so that their extra effects work
 /datum/reagent/proc/phase_tick(delta_time)
@@ -514,11 +521,12 @@ Primarily used in reagents/reaction_agents
 	return 0
 
 ///Sets a specific phase to a certain ratio - call check_phase_ratio after using this.
-/datum/reagent/proc/set_phase_percent(phase, amount)
+/datum/reagent/proc/set_phase_percent(phase, amount, check_ratio = TRUE)
 	for(var/datum/reagent_phase/phase_state in phase_states)
 		if(phase == phase_state.phase)
 			phase_states[phase_state] = amount
-			check_phase_ratio()
+			if(check_ratio)
+				check_phase_ratio()
 			return TRUE
 	return FALSE
 

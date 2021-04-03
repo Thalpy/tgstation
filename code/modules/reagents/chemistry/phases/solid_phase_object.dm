@@ -1,10 +1,9 @@
 #define REAGENT_VOL_TO_STACK_MULTIPLIER 5
 
 /obj/item/stack/solid_phase_object
-	name = "Solid"
-	desc = "A solid mass of" //Reagent name here
+	name = "error"
+	desc = "A solid mass of error" //Reagent name here
 	icon_state = "reagent_phase_solid"
-	tableVariant = /obj/structure/table/reagents
 	//the reagent type this thing is
 	var/reagent_type
 
@@ -22,7 +21,7 @@
 	desc += " [reagent.name]"
 	reagent_type = reagent.type
 	color = reagent.color
-	create_reagents(250) //5u per 1 stack
+	create_reagents(SOLID_PHYSICAL_PHASE_CAPACITY) //5u per 1 stack
 	grind_results = list(reagent.type = REAGENT_VOL_TO_STACK_MULTIPLIER)
 	reagents.add_reagent(reagent.type, amount, added_purity = reagent.purity)
 
@@ -52,6 +51,13 @@
 	if(reagents.total_volume <= 0)
 		qdel(src)
 
+/obj/item/stack/solid_phase_object/solid
+	name = "Solid"
+	desc = "A solid mass of" //Reagent name here
+	icon_state = "reagent_phase_solid"
+	tableVariant = /obj/structure/table/reagents
+	//the reagent type this thing is
+
 /obj/item/stack/solid_phase_object/powder
 	name = "Powdered"
 	desc = "A ground up mass of" //Reagent name here
@@ -66,11 +72,11 @@
 	. = ..()
 
 /obj/structure/table/reagents/post_create_table(obj/item/item)
-	create_reagents(250) //5u per 1 stack
+	create_reagents(SOLID_PHYSICAL_PHASE_CAPACITY) //5u per 1 stack
 	var/obj/item/stack/solid_phase_object/reagent_source = item
-	color = mix_color_from_reagents(reagent_source.reagent_list)
-	reagent_source.trans_to(reagents, reagent_source.total_volume)
-	var/datum/reagent/reagent = reagent_source.reagent_list[1]
+	color = mix_color_from_reagents(reagent_source.reagents.reagent_list)
+	reagent_source.reagents.trans_to(reagents, reagent_source.reagents.total_volume)
+	var/datum/reagent/reagent = reagent_source.reagents.reagent_list[1]
 	name += "[reagent.name] Table"
 	desc = "A table made out of [reagent.name]"
 
@@ -81,3 +87,4 @@
 		reagents.trans_to(item.reagents, 2)
 	if(reagents.total_volume <= 0)
 		qdel(src)
+	alpha = 200 + (reagents.total_volume / 5)

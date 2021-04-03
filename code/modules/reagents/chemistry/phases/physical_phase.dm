@@ -7,8 +7,6 @@
 * This hooks up the the mist obj which does most of the math with signals - Welcome to signal city
 */
 
-#define MIST_STANDARD_CELL_CAPACITY 20
-
 /datum/physical_phase
 	///This is the holder that holds the current reagents that are in the "air"
 	var/datum/reagents/center_holder
@@ -24,6 +22,8 @@
 	var/phase_object
 	///The type of phase we are
 	var/phase_type
+	///The u/volume capacity of one cell
+	var/cell_capacity
 
 /datum/physical_phase/New(datum/reagent/reagent, volume, atom/reagent_source, turf/location)
 	. = ..()
@@ -52,7 +52,7 @@
 	UnregisterSignal(source, COMSIG_PARENT_QDELETING)
 	SEND_SIGNAL(src, COMSIG_PHASE_STATE_DELETE)
 	for(var/datum/reagent/reagent as anything in center_holder.reagent_list)
-		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_FROM_GAS) //Clean up signals
+		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY) //Clean up signals
 	QDEL_NULL(center_holder)
 	SSphase_states.active_state_controllers[phase_type] -= src
 	return ..()
@@ -81,7 +81,7 @@
 
 /datum/physical_phase/proc/on_del_reagent(source, datum/reagent/reagent)
 	SIGNAL_HANDLER
-	UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_FROM_GAS)
+	UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY)
 	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list))
 	//UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_TO_GAS)
 
@@ -94,14 +94,16 @@
 		if(GAS)
 			create_mist(reagent, amount, get_turf(source))
 		if(LIQUID)
-			//Create liquid
+			create_liquid(reagent, amount, get_turf(source))
 			message_admins("creating liquid")
 		if(SOLID)
-			//Create solid
+			create_solid(reagent, amount, get_turf(source))
 			message_admins("creating solid")
 		if(IONISED)
 			var/zap_flags = ZAP_MOB_DAMAGE | ZAP_OBJ_DAMAGE | ZAP_MOB_STUN
 			tesla_zap(source, 7, amount*100, zap_flags)
+		if(POWDER)
+			stack_trace("Attemptung to transform INTO powder from [phase_from] in a physical phase. This shouldn't be happening!")
 	process()
 
 /datum/physical_phase/process()
@@ -109,7 +111,7 @@
 	if(center_holder.total_volume <= 0)
 		end_all_physical_phases()
 		return
-	var/delta_cell = CEILING(center_holder.total_volume/MIST_STANDARD_CELL_CAPACITY, 1)
+	var/delta_cell = CEILING(center_holder.total_volume/cell_capacity, 1)
 	if(delta_cell == current_cells)
 		return
 	if(delta_cell > current_cells)
@@ -117,7 +119,7 @@
 		//stack_trace("Removal of gas is trying to create more cells!")
 	else if(delta_cell < current_cells)
 		remove_cell(delta_cell)
-	var/interface_alpha =  50 + (((center_holder.total_volume % MIST_STANDARD_CELL_CAPACITY)/20) * 200)
+	var/interface_alpha =  50 + (((center_holder.total_volume % cell_capacity)/20) * 200)
 	SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_COLOR, mix_color_from_reagents(center_holder.reagent_list), interface_alpha)
 
 /datum/physical_phase/proc/create_new_cell(num_cells)
@@ -135,7 +137,7 @@
 	for(var/turf/new_turf in target.local_turf.GetAtmosAdjacentTurfs())
 		var/obj/phase_object/phasey_boi = locate() in new_turf //Don't spread smoke where there's already smoke!
 		if(phasey_boi && phasey_boi?.phase_controller.center_holder != center_holder) //Is there another cell there that's of a different controller? Lets greet them if so
-			merge_into(phasey_boi.phase_controller.center_holder, MIST_STANDARD_CELL_CAPACITY)
+			merge_into(phasey_boi.phase_controller.center_holder, cell_capacity)
 			return TRUE
 		if(phasey_boi) //if it's occupied - don't enter
 			continue
@@ -196,6 +198,7 @@
 /datum/physical_phase/gas_phase
 	phase_object = /obj/phase_object/mist
 	phase_type = GAS
+	cell_capacity = 20
 
 /datum/physical_phase/gas_phase/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
 	. = ..()
@@ -220,4 +223,5 @@
 /datum/physical_phase/liquid_phase
 	phase_object = /obj/phase_object/liquid
 	phase_type = LIQUID
+	cell_capacity = 25
 

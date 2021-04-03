@@ -1321,9 +1321,9 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	recalculate_sum_ph()
 	check_reagent_phase()
 
-/* 			~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~				 /
- *			~~~		Phase/pressure methods		~~~			 	 /
- * 			~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~				*/
+/* 			~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~									 	 /
+ *			~~~		Phase/pressure methods		~~~		search tag:REAGENT_PRESSURE	 	 /
+ * 			~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~										*/
 
 ///Call this to check the phase states of all of the reagents within the holder, it will start processing them if true.
 /datum/reagents/proc/check_reagent_phase()
@@ -1369,7 +1369,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			if(reagent.phase_states[phase] < CHEMICAL_VOLUME_ROUNDING) //phase is empty
 				continue
 			//How much "raw" molar volume we have before normalising it
-			sum_moles += (reagent.volume * reagent.phase_states[phase] * reagent.mass) / phase.density//What maniac has base first
+			sum_moles += (reagent.volume * reagent.phase_states[phase]) / phase.density//What maniac has base first
 		//pV = nRT except I fudge numbers and ideology is gone
 		sum_pressure += (log(sum_moles) * R_IDEAL_GAS_EQUATION * chem_temp)/(reagent.volume) ///It's a good idea to make this cheaper move the log out if you can
 	//sum_pressure /= reagent_list.len
@@ -1377,7 +1377,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	sum_pressure *= total_volume / maximum_volume
 	//If we're in a holder that isn't sealed
 	//Update our pressure
-	pressure = sum_pressure * FERMI_FUDGE_PRESSURE_CONSTANT //Because our moles are fantasy
+	pressure = sum_pressure * FERMI_FUDGE_PRESSURE_CONSTANT //Because our moles are fantasy and we want a sensible range
 	//We don't update temperature because it's too much to process - but for reagent gas we do, so there's a slight difference that we consider if we're in a gas state
 	//If we're over the pressure value of the holder - i.e. are we gonna blow?
 	//FERMI_TODO
@@ -1410,13 +1410,13 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 
 /datum/reagents/proc/spawn_solids(mob/user)
 	for(var/datum/reagent/reagent as anything in reagent_list)
-		for(var/datum/reagent_phase/phase_state in phase_states)
+		for(var/datum/reagent_phase/phase_state in reagent.phase_states)
 			if(SOLID == phase_state.phase)
 				var/amount = reagent.get_phase_volume(SOLID)
 				while(amount > 0)
-					var/obj/item/stack/solid_phase_object/reagent_stack = new /obj/item/stack/solid_phase_object(get_turf(my_atom), amount/5)
-					reagent_stack.set_reagent(reagent, min(amount, 250))
-					amount -= 250
+					var/obj/item/stack/solid_phase_object/solid/reagent_stack = new /obj/item/stack/solid_phase_object/solid(get_turf(my_atom), amount/5)
+					reagent_stack.set_reagent(reagent, min(amount, SOLID_PHYSICAL_PHASE_CAPACITY))
+					amount -= SOLID_PHYSICAL_PHASE_CAPACITY
 					user.put_in_hands(reagent_stack)
 				reagent.set_phase_percent(SOLID, 0)
 				to_chat(user, "You take the solid [reagent.name] out of the [my_atom]")
@@ -1424,14 +1424,17 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			if(POWDER == phase_state.phase)
 				var/amount = reagent.get_phase_volume(POWDER)
 				while(amount > 0)
-					var/obj/item/stack/solid_phase_object/reagent_stack = new /obj/item/stack/solid_phase_object(get_turf(my_atom), amount/5)
-					reagent_stack.set_reagent(reagent, min(amount, 250))
-					amount -= 250
+					var/obj/item/stack/solid_phase_object/powder/reagent_stack = new /obj/item/stack/solid_phase_object/powder(get_turf(my_atom), amount/5)
+					reagent_stack.set_reagent(reagent, min(amount, SOLID_PHYSICAL_PHASE_CAPACITY))
+					amount -= SOLID_PHYSICAL_PHASE_CAPACITY
 					user.put_in_hands(reagent_stack)
 				reagent.set_phase_percent(POWDER, 0)
 				to_chat(user, "You take the powdered [reagent.name] out of the [my_atom]")
 				continue
 
+/datum/reagents/proc/grind_reagents()
+	for(var/datum/reagent/reagent as anything in reagent_list)
+		reagent.full_phase_transition(SOLID, POWDER)
 
 /* 		~~~		END	Phase/pressure methods	END		~~~		 */
 

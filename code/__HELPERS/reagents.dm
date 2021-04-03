@@ -213,6 +213,17 @@
 
 // 		~~		Physical phase related procs		~~
 
+/**
+ * Creates a new mist (gas phase physical state) from a reagent
+ * If there is already a mist on the tile it'll merge with it
+ * If there's a nearby mist, it'll join it's controller
+ * If there's nothing nearby, it creates a new controller and mist
+ *
+ * arguments:
+ * * reagent - the reagent that we're making the mist of
+ * * amount - the volume of said reagent we're adding to
+ * * source_turf - the location we're creating the mist in
+ */
 /proc/create_mist(datum/reagent/reagent, amount, turf/source_turf)
 	var/obj/phase_object/mist/misty = locate() in source_turf
 	if(!misty)
@@ -234,3 +245,95 @@
 		return
 	misty.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
 	reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)
+
+/**
+ * Creates a new liquid (liquid phase physical state) from a reagent
+ * If there is already a liquid on the tile it'll merge with it
+ * If there's a nearby liquid, it'll join it's controller
+ * If there's nothing nearby, it creates a new controller and liquid
+ *
+ * arguments:
+ * * reagent - the reagent that we're making the liquid of
+ * * amount - the volume of said reagent we're adding to
+ * * source_turf - the location we're creating the liquid in
+ */
+/proc/create_liquid(datum/reagent/reagent, amount, turf/source_turf)
+	var/obj/phase_object/liquid/moist = locate() in source_turf
+	if(!moist)
+		//If there's no liquid on our target turf - we want to join to an existing liquid if it exists.
+		for(var/turf/nearby_turf in source_turf.GetAtmosAdjacentTurfs())
+			var/obj/phase_object/liquid/moist_lass = locate() in nearby_turf
+			if(moist_lass)
+				if(QDELETED(moist_lass.phase_controller))
+					continue
+				new /obj/phase_object/liquid(source_turf, moist_lass.phase_controller.center_holder, moist_lass.phase_controller)
+				moist_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+				return
+		//If we're truly alone, create a new one
+		new /datum/physical_phase/gas_phase(reagent, amount, reagent.holder.my_atom, source_turf)
+		reagent.holder.remove_reagent(reagent.type, amount, phase = LIQUID)
+		return
+	//Edge case - we don't want deleting things to be rejuvinated
+	if(QDELETED(moist.phase_controller))
+		return
+	moist.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+	reagent.holder.remove_reagent(reagent.type, amount, phase = LIQUID)
+
+/**
+ * Creates a new crystal (solid phase physical state) from a reagent
+ * If there is already a crystal on the tile it'll merge with it
+ * If the crytal is full it'll create a new one
+ * If there's no crystal it'll make a new one
+ *
+ * arguments:
+ * * reagent - the reagent that we're making the crystal of
+ * * amount - the volume of said reagent we're adding to
+ * * source_turf - the location we're creating the crystal in
+ */
+/proc/create_solid(datum/reagent/reagent, amount, turf/source_turf)
+	for(var/obj/item/stack/solid_phase_object/solid/crystal in source_turf)
+		if(crystal.reagents.total_volume > SOLID_PHYSICAL_PHASE_CAPACITY)
+			continue
+		var/crystal_capacity = SOLID_PHYSICAL_PHASE_CAPACITY - crystal.reagents.total_volume
+		var/trans_amount = min(amount, crystal_capacity)
+		crystal.reagents.add_reagent(reagent.type, trans_amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+		reagent.holder.remove_reagent(reagent.type, amount, phase = SOLID)
+		amount -= trans_amount
+		if(amount <= 0)
+			return
+	///Should only occur if all crystals are full, or there are none.
+	while(amount > 0)
+		var/obj/item/stack/solid_phase_object/solid/reagent_stack = new /obj/item/stack/solid_phase_object/solid(source_turf, amount/5)
+		reagent_stack.set_reagent(reagent, min(amount, 250))
+		amount -= 250
+		reagent.holder.remove_reagent(reagent.type, 250, phase = SOLID)
+
+/**
+ * Creates a new powder (powder phase physical state) from a reagent
+ * If there is already a powder on the tile it'll merge with it
+ * If the crytal is full it'll create a new one
+ * If there's no powder it'll make a new one
+ *
+ * arguments:
+ * * reagent - the reagent that we're making the powder of
+ * * amount - the volume of said reagent we're adding to
+ * * source_turf - the location we're creating the powder in
+ */
+/proc/create_powder(datum/reagent/reagent, amount, turf/source_turf)
+	for(var/obj/item/stack/solid_phase_object/powder/powdery in source_turf)
+		if(powdery.reagents.total_volume > SOLID_PHYSICAL_PHASE_CAPACITY)
+			continue
+		var/powdery_capacity = SOLID_PHYSICAL_PHASE_CAPACITY - powdery.reagents.total_volume
+		var/trans_amount = min(amount, powdery_capacity)
+		powdery.reagents.add_reagent(reagent.type, trans_amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+		reagent.holder.remove_reagent(reagent.type, amount, phase = POWDER)
+		amount -= trans_amount
+		if(amount <= 0)
+			return
+	///Should only occur if all crystals are full, or there are none.
+	while(amount > 0)
+		var/obj/item/stack/solid_phase_object/powder/reagent_stack = new /obj/item/stack/solid_phase_object/powder(source_turf, amount/5)
+		reagent_stack.set_reagent(reagent, min(amount, 250))
+		amount -= 250
+		reagent.holder.remove_reagent(reagent.type, 250, phase = POWDER)
+

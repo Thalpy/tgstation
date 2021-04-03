@@ -300,6 +300,7 @@
 		var/obj/item/I = i
 		if(I.grind_results)
 			grind_item(i, user)
+	beaker?.reagents.grind_reagents()
 
 /obj/machinery/reagentgrinder/proc/grind_item(obj/item/I, mob/user) //Grind results can be found in respective object definitions
 	if(I.on_grind(src) == -1) //Call on_grind() to change amount as needed, and stop grinding the item if it returns -1

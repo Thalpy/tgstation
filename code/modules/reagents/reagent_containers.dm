@@ -71,6 +71,7 @@
 	if(reagents.flags & SEALED)
 		reagents.unseal()
 		to_chat(user, "<span class='notice'>You remove the seal from [src].</span>")
+		//FERMI_TODO: add sound
 	else
 		reagents.spawn_solids(user)
 		to_chat(user, "<span class='notice'>You take out the solids inside of the [src].</span>")

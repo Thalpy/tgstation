@@ -139,12 +139,13 @@
 #define WITHDRAWAL_STAGE3_START_CYCLE 121
 
 ///The constant used to adjust pressure values in reagent holders when sealed. It's a fudge because we don't have moles, so I adjust numbers to make up fantasy moles
-#define FERMI_FUDGE_PRESSURE_CONSTANT 0.03
+#define FERMI_FUDGE_PRESSURE_CONSTANT 1
 ///The ratio for converting reagent volume into atoms moles
 #define REAGENT_VOL_TO_GAS_MOLARITY 0.1
 ///The standard rate in which a reagent diffuses out of a beaker
 #define STANDARD_REAGENT_DIFFUSE_RATE 0.1
-
+///The maximum volume a solid phase object can hold
+#define SOLID_PHYSICAL_PHASE_CAPACITY 250
 
 ///Phase state profiles for easy use
 ///Reagent is a liquid at room temperature
@@ -153,6 +154,8 @@
 /* FERMI_TODO:
 #define PHASE_STATE_GAS_DETERMINISTIC list(/datum/reagent_phase/plasma = 0, /datum/reagent_phase/linear/solid/powder = 0, /datum/reagent_phase/linear/solid/mass_effect/gas = 0, /datum/reagent_phase/linear/liquid/mass_effect/gas = 0, /datum/reagent_phase/gas = 1)
 */
+
+
 
 ///reagent tags - used to look up reagents for specific effects. Feel free to add to but comment it
 /// This reagent does brute effects (BOTH damaging and healing)

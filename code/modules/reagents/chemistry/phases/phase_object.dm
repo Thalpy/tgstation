@@ -18,6 +18,8 @@
 	var/temperature
 	///What pressure we're at
 	var/pressure
+	///What our cell capacity is
+	var/cell_capacity
 
 //For solids - see solid phase object
 
@@ -65,7 +67,7 @@ Todo:
 	phase_controller.remove_from_interface(src)
 	phase_controller.current_cells--
 	if(cost_on_delete)
-		phase_controller.center_holder.remove_all(MIST_STANDARD_CELL_CAPACITY)
+		phase_controller.center_holder.remove_all(phase_controller.cell_capacity)
 	..()
 
 /obj/phase_object/proc/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
@@ -99,6 +101,7 @@ Todo:
 	icon_state = "mist"
 	phase = GAS
 	layer = ABOVE_NORMAL_TURF_LAYER
+	cell_capacity = 20
 
 /obj/phase_object/mist/New(turf/open/input_turf, datum/reagents/center_holder, datum/physical_phase/input_phase_controller)
 	. = ..()
