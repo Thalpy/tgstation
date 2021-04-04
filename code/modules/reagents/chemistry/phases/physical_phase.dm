@@ -47,6 +47,7 @@
 	RegisterSignal(center_holder, COMSIG_REAGENTS_NEW_REAGENT, .proc/on_new_reagent)
 	RegisterSignal(center_holder, COMSIG_REAGENTS_DEL_REAGENT, .proc/on_del_reagent)
 	RegisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES, .proc/process)
+	//RegisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES, .proc/process)
 	RegisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PRESSURE, .proc/update_temp_and_pressure)
 	//Add reagents
 	var/obj/phase_object/new_phase_object = new phase_object(location, center_holder, src)
@@ -67,7 +68,7 @@
 /datum/physical_phase/Destroy(force, ...)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_NEW_REAGENT)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_DEL_REAGENT)
-	UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES)
+	//UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PRESSURE)
 	UnregisterSignal(source, COMSIG_PARENT_QDELETING)
 	for(var/obj/phase_object/del_phase_object)
@@ -142,13 +143,11 @@
 	SIGNAL_HANDLER
 	RegisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY, .proc/on_phase_change_away)
 	reagent.chemical_flags |= REAGENT_STATE_PHYSICAL_PHASE
-	//process()
 
 //Signal works
 /datum/physical_phase/proc/on_del_reagent(source, datum/reagent/reagent)
 	SIGNAL_HANDLER
 	UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY)
-	//process()
 
 /datum/physical_phase/proc/on_phase_change_away(datum/reagent/reagent, amount, datum/reagent_phase/phase_into)
 	SIGNAL_HANDLER
@@ -170,7 +169,7 @@
 			tesla_zap(source, 7, amount*100, zap_flags)
 		if(POWDER)
 			stack_trace("Attemptung to transform INTO powder from [phase_type] in a physical phase. This shouldn't be happening!")
-	process()
+	//process()
 
 /datum/physical_phase/proc/update_temp_and_pressure()
 	if(update_temp_pressure == FALSE)
@@ -191,16 +190,17 @@
 	//SIGNAL_HANDLER
 	if(center_holder.total_volume <= 0)
 		end_all_physical_phases()
-		return
+		return FALSE
 	var/delta_cell = CEILING(center_holder.total_volume/cell_capacity, 1)
 	if(delta_cell == current_cells.len)
-		return
+		return FALSE
 	if(delta_cell > current_cells.len)
 		create_new_cell(delta_cell) //Only make 1 cell at a time to make it look like it's spreading!
 		//stack_trace("Removal of gas is trying to create more cells!")
 	else if(delta_cell < current_cells.len)
 		remove_cell(delta_cell)
 	update_cells_color()
+	return COMPONENT_REAGENT_REQUEST_UPDATE
 
 /datum/physical_phase/proc/update_cells_color()
 	var/new_color = mix_color_from_reagents(center_holder.reagent_list)
@@ -295,14 +295,15 @@
 	. = ..()
 	RegisterSignal(reagent, COMSIG_REAGENT_DIFFUSE, .proc/override_reagent_diffusion)
 
-///Diffusion creates mist - so we want to stop that!
-/datum/physical_phase/gas_phase/proc/override_reagent_diffusion(datum/reagent, volume)
-	center_holder.remove_reagent(reagent.type, volume/5)
-	return COMSIG_REAGENT_BLOCK_DIFFUSE
-
 /datum/physical_phase/gas_phase/on_del_reagent(source, datum/reagent/reagent)
 	. = ..()
 	UnregisterSignal(reagent, COMSIG_REAGENT_DIFFUSE)
+
+///Diffusion creates mist - so we want to stop that!
+/datum/physical_phase/gas_phase/proc/override_reagent_diffusion(datum/reagent, volume)
+	center_holder.remove_reagent(reagent.type, volume/5)
+	process()
+	return COMPONENT_REAGENT_BLOCK_DIFFUSE
 
 /datum/physical_phase/gas_phase/proc/carbon_breathe(source, mob/living/carbon/carby, delta_time)
 	SIGNAL_HANDLER
@@ -316,3 +317,13 @@
 	phase_type = LIQUID
 	cell_capacity = 25
 
+/datum/physical_phase/gas_phase/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
+	. = ..()
+	RegisterSignal(reagent, COMSIG_LIQUID_PHASE_TICK, .proc/liquid_tick)
+
+/datum/physical_phase/gas_phase/on_del_reagent(source, datum/reagent/reagent)
+	. = ..()
+	UnregisterSignal(reagent, COMSIG_LIQUID_PHASE_TICK)
+
+/datum/physical_phase/liquid_phase/proc/liquid_tick()
+	return process()

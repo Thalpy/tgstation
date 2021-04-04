@@ -115,6 +115,9 @@
 		return FALSE
 	create_liquid(reagent, volume, target_turf)
 
+/datum/reagent_phase/liquid/tick(datum/reagent/reagent, delta_time)
+	return SEND_SIGNAL(reagent.holder, COMSIG_LIQUID_PHASE_TICK, reagent, phase, delta_time, src)
+
 ///Default solid
 /datum/reagent_phase/solid
 	phase = SOLID

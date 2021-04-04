@@ -260,7 +260,7 @@
 ///from base of [/datum/reagent/proc/diffuse]: (amount)
 #define COMSIG_REAGENT_DIFFUSE "reagent_diffuse"
 	///Prevents the diffusion from happening if returned DOES NOT WORK FOR GASSES i.e. reagent/gas subtypes!! This is intentional because we don't want gas reagents to become mists
-	#define COMSIG_REAGENT_BLOCK_DIFFUSE (1<<0)
+	#define COMPONENT_REAGENT_BLOCK_DIFFUSE (1<<0)
 
 
 //Phase states and phase related procs
@@ -272,6 +272,11 @@
 #define COMSIG_PHASE_CHANGE_INTO "phase_away_into"
 ///from base of [/datum/reagent_phase/proc/transition_from]: (amount, phase, target_phase)
 #define COMSIG_PHASE_CHANGE_AWAY "phase_away_from"
+///from base of [/datum/reagent_phase/proc/tick]: (reagents, reagent, phase, delta_time, physical_phase)
+#define	COMSIG_LIQUID_PHASE_TICK "phase_tick"
+	///If we want an update following this call
+	#define COMPONENT_REAGENT_REQUEST_UPDATE (1<<0)
+
 
 // Lighting:
 ///from base of [atom/proc/set_light]: (l_range, l_power, l_color, l_on)

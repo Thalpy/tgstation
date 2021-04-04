@@ -314,31 +314,12 @@ Primarily used in reagents/reaction_agents
  * * Amount: how much was diffused
  */
 /datum/reagent/proc/diffuse(amount)
-	if(SEND_SIGNAL(src, COMSIG_REAGENT_DIFFUSE, amount) & COMSIG_REAGENT_BLOCK_DIFFUSE)
-		return
+	if(SEND_SIGNAL(src, COMSIG_REAGENT_DIFFUSE, amount) & COMPONENT_REAGENT_BLOCK_DIFFUSE)
+		return FALSE
 	var/turf/source_turf = get_turf(holder.my_atom)
 	if(!isopenturf(source_turf))
-		return
-	var/obj/phase_object/mist/misty = locate() in source_turf
-	if(!misty)
-		//If there's no mist on our target turf - we want to join to an existing mist if it exists.
-		for(var/turf/nearby_turf in source_turf.GetAtmosAdjacentTurfs())
-			var/obj/phase_object/mist/misty_lass = locate() in nearby_turf
-			if(misty_lass)
-				if(QDELETED(misty_lass.phase_controller))
-					continue
-				new /obj/phase_object/mist(source_turf, misty_lass.phase_controller.center_holder, misty_lass.phase_controller)
-				misty_lass.phase_controller.center_holder.add_reagent(type, amount, reagtemp = holder.chem_temp, added_purity = purity, added_ph = ph)
-				return
-		//If we're truly alone, create a new one
-		new /datum/physical_phase/gas_phase(src, amount, holder.my_atom, source_turf)
-		holder.remove_reagent(type, amount, phase = GAS)
-		return
-	//Edge case - we don't want deleting things to be rejuvinated
-	if(QDELETED(misty.phase_controller))
-		return
-	misty.phase_controller.center_holder.add_reagent(type, amount, reagtemp = holder.chem_temp, added_purity = purity, added_ph = ph)
-	holder.remove_reagent(type, amount, phase = GAS)
+		return FALSE
+	create_mist(src, amount, source_turf) //create mist also merges them
 
 ///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this from it's holder
 ///Processes the phases of each reagent in the holder

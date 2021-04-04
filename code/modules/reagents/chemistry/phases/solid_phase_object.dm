@@ -40,6 +40,7 @@
 	color = mix_color_from_reagents(reagents.reagent_list)
 	if(reagents.total_volume <= 0)
 		qdel(src)
+	amount = reagents.total_volume * REAGENT_VOL_TO_STACK_MULTIPLIER
 
 //		~~~		solid		~~~
 
