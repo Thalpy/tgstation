@@ -54,9 +54,9 @@
 	//Set atom first - so we know where we are, so we can explode
 	center_holder.my_atom = new_phase_object
 	//Then add reagent
-	center_holder.add_reagent(reagent.type, volume, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity) //Does not remove volume from original holder - should be handled outside of that
+	center_holder.add_reagent(reagent.type, volume, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = phase_type) //Does not remove volume from original holder - should be handled outside of that
 	//Update color and alpha
-	new_phase_object.recalculate_color(src, mix_color_from_reagents(center_holder.reagent_list), 150 + (((center_holder.total_volume % cell_capacity)/20) * 100))
+	new_phase_object.recalculate_color(mix_color_from_reagents(center_holder.reagent_list), 150 + (((center_holder.total_volume % cell_capacity)/20) * 100))
 	//Track active states for panic destroy/debugging
 	SSphase_states.active_state_controllers[phase_type] += src
 	//Set our center - though maybe I should make the center based off reagent input (yes do this FERMI_TODO)
@@ -66,6 +66,7 @@
 	center_y = new_phase_object.y
 
 /datum/physical_phase/Destroy(force, ...)
+	UnregisterSignal(source, COMSIG_PARENT_QDELETING)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_NEW_REAGENT)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_DEL_REAGENT)
 	//UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES)
@@ -221,6 +222,7 @@
 			min_dist = phasey_distance
 	if(!target)
 		stack_trace("No target physical phase found! Is the interfacial list empty? Should this be a deleted controller?")
+		return
 	//we have a target
 	var/created_new = FALSE
 	for(var/turf/new_turf in target.local_turf.GetAtmosAdjacentTurfs())
@@ -239,7 +241,7 @@
 	return created_new
 
 /datum/physical_phase/proc/remove_cell(num_cells) //This isn't working!
-	var/max_dist = 0
+	var/max_dist = -999
 	var/obj/phase_object/target
 	for(var/obj/phase_object/phasey in interface_cells)
 		var/phasey_distance = get_dist(source, phasey)
@@ -277,11 +279,12 @@
 		if(other_phasey)
 			add_to_interface(other_phasey)
 			continue
-	if(!adjacent_filled)
-		message_admins("I forget why this check is here")
+	if(!adjacent_filled && current_cells.len)
+		message_admins("Cell is being removed from active liquid, but has no nearby fellows in an active physical phase! [phase_type]")
 	interface_cells -= phasey
 	phasey.interfacial = FALSE
-	if(current_cells <= 0)
+	phasey.alpha = 255
+	if(!current_cells.len)
 		qdel(src)
 
 //		~~~			GAS PHASES			~~~
@@ -292,16 +295,16 @@
 	cell_capacity = 20
 
 /datum/physical_phase/gas_phase/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
-	. = ..()
 	RegisterSignal(reagent, COMSIG_REAGENT_DIFFUSE, .proc/override_reagent_diffusion)
+	. = ..()
 
 /datum/physical_phase/gas_phase/on_del_reagent(source, datum/reagent/reagent)
 	. = ..()
 	UnregisterSignal(reagent, COMSIG_REAGENT_DIFFUSE)
 
-///Diffusion creates mist - so we want to stop that!
+///Diffusion creates mist - so we want to stop that! - works
 /datum/physical_phase/gas_phase/proc/override_reagent_diffusion(datum/reagent, volume)
-	center_holder.remove_reagent(reagent.type, volume/5)
+	center_holder.remove_reagent(reagent.type, volume/2)
 	process()
 	return COMPONENT_REAGENT_BLOCK_DIFFUSE
 
@@ -317,13 +320,15 @@
 	phase_type = LIQUID
 	cell_capacity = 25
 
-/datum/physical_phase/gas_phase/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
-	. = ..()
+/datum/physical_phase/liquid_phase/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
 	RegisterSignal(reagent, COMSIG_LIQUID_PHASE_TICK, .proc/liquid_tick)
+	. = ..()
 
-/datum/physical_phase/gas_phase/on_del_reagent(source, datum/reagent/reagent)
+
+/datum/physical_phase/liquid_phase/on_del_reagent(source, datum/reagent/reagent)
 	. = ..()
 	UnregisterSignal(reagent, COMSIG_LIQUID_PHASE_TICK)
 
-/datum/physical_phase/liquid_phase/proc/liquid_tick()
-	return process()
+/datum/physical_phase/liquid_phase/proc/liquid_tick(source, reagent, phase, delta_time, /datum/reagent_phase/reagent_phase)
+	if(process(delta_time))
+		return COMPONENT_REAGENT_REQUEST_UPDATE

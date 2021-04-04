@@ -98,9 +98,9 @@
 	//Move below to remove_reagent() FERMI_TODO
 	//reagent.set_phase_percent(phase, reagent.volume * reagent.get_phase_ratio(phase)) - volume) / (reagent.volume - volume)
 	reagent.diffuse(volume)
-	if(!QDELETED(reagent))
-		reagent.check_phase_ratio()
+	if(QDELETED(reagent))
 		return FALSE
+	reagent.check_phase_ratio()
 	return TRUE
 
 ///Default liquid
@@ -116,7 +116,7 @@
 	create_liquid(reagent, volume, target_turf)
 
 /datum/reagent_phase/liquid/tick(datum/reagent/reagent, delta_time)
-	return SEND_SIGNAL(reagent.holder, COMSIG_LIQUID_PHASE_TICK, reagent, phase, delta_time, src)
+	return SEND_SIGNAL(reagent, COMSIG_LIQUID_PHASE_TICK, reagent, phase, delta_time, src)
 
 ///Default solid
 /datum/reagent_phase/solid

@@ -12,8 +12,8 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 
 /datum/controller/subsystem/processing/phase/Initialize()
 	. = ..()
-	//So our first step isn't insane
-	previous_world_time = world.time
+	//So our first step autoresolves all
+	//previous_world_time = world.time
 	return
 
 /datum/controller/subsystem/processing/phase/fire(resumed = FALSE)
@@ -32,7 +32,7 @@ PROCESSING_SUBSYSTEM_DEF(phase)
 		if(QDELETED(reagent))
 			stack_trace("Found qdeleted reagent in [type]: [holder.my_atom] | [reagent], in the current_run list.")
 			processing -= reagent
-		if(!reagent.holder)
+		if(!reagent.holder || QDELETED(reagent.holder))
 			stack_trace("A holderless reagent made it's way to the phase list when it shouldn't")
 			STOP_PROCESSING(src, reagent)
 		if(reagent.holder != holder)

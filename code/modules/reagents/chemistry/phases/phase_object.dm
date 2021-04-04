@@ -41,6 +41,10 @@ Todo:
 		return
 	. = ..()
 	local_turf = input_turf
+	//Set our temperature and pressure
+	var/datum/gas_mixture/local_gas = return_air()
+	temperature = local_gas.temperature
+	pressure = local_gas.return_pressure()
 	//reagents = center_holder // Do not do this - qdel will trigger the datum's destroy, killing the reagent controller's reagents with it (since it's a pointer)
 	phase_controller = input_phase_controller
 	RegisterSignal(local_turf, COMSIG_ATOM_ENTERED, .proc/flag_entree)
@@ -66,12 +70,15 @@ Todo:
 	..()
 
 /obj/phase_object/proc/add_reagent(datum/reagent/reagent, amount)
-	phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+	if(!phase_controller.center_holder.total_volume) //This should be deleting in the next process
+		return
+	phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = phase)
 	phase_controller.shift_center(x, y, z, amount)
 
 /obj/phase_object/proc/remove_reagent(datum/reagent/reagent, amount)
 	phase_controller.center_holder.remove_reagent(reagent.type, amount, phase = phase)
-	phase_controller.shift_center(x, y, z, -amount)
+	if(phase_controller.center_holder.total_volume)
+		phase_controller.shift_center(x, y, z, -amount)
 
 /obj/phase_object/proc/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
 	SIGNAL_HANDLER
@@ -79,7 +86,7 @@ Todo:
 /obj/phase_object/proc/unflag_entree(atom/oldLoc, atom/movable/moveable, atom/newLoc)
 	SIGNAL_HANDLER
 
-/obj/phase_object/proc/recalculate_color(datum/physical_phase/controller, new_color, interface_alpha)
+/obj/phase_object/proc/recalculate_color(new_color, interface_alpha)
 	SIGNAL_HANDLER
 	color = new_color
 	if(interfacial)
@@ -93,11 +100,11 @@ Todo:
 
 /obj/phase_object/proc/begone(source)
 	SIGNAL_HANDLER
-	if(!QDELETED(src))
+	if(!QDELETED(src)) //This can occur when an explosion takes out a bunch of cells
 		cost_on_delete = FALSE
 		qdel(src)
-	else
-		stack_trace("attempted to delete phase cell when it was flagged to delete")
+	//else
+	//	stack_trace("attempted to delete phase cell when it was flagged to delete")
 
 /obj/phase_object/mist
 	name = "mist cloud"
@@ -112,7 +119,7 @@ Todo:
 	for(var/mob/living/carbon/carby in input_turf.contents)
 		phase_controller.RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, /datum/physical_phase/gas_phase/proc/carbon_breathe)
 
-/obj/phase_object/Destroy(force)
+/obj/phase_object/mist/Destroy(force)
 	for(var/mob/living/carbon/carby in local_turf.contents)
 		phase_controller.UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
 	return ..()

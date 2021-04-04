@@ -234,17 +234,19 @@
 				if(QDELETED(misty_lass.phase_controller))
 					continue
 				new /obj/phase_object/mist(source_turf, misty_lass.phase_controller.center_holder, misty_lass.phase_controller)
-				misty_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
-				return
+				misty_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = GAS)
+				return TRUE
 		//If we're truly alone, create a new one
 		new /datum/physical_phase/gas_phase(reagent, amount, reagent.holder?.my_atom, source_turf)
 		reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)
-		return
+		return TRUE
 	//Edge case - we don't want deleting things to be rejuvinated
 	if(QDELETED(misty.phase_controller))
-		return
-	misty.add_reagent(reagent, amount)
-	reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)
+		return FALSE
+	if(misty.add_reagent(reagent, amount))
+		reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)
+		return TRUE
+	return FALSE
 
 /**
  * Creates a new liquid (liquid phase physical state) from a reagent
@@ -267,7 +269,7 @@
 				if(QDELETED(moist_lass.phase_controller))
 					continue
 				new /obj/phase_object/liquid(source_turf, moist_lass.phase_controller.center_holder, moist_lass.phase_controller)
-				moist_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+				moist_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = GAS)
 				return
 		//If we're truly alone, create a new one
 		new /datum/physical_phase/liquid_phase(reagent, amount, reagent.holder.my_atom, source_turf)

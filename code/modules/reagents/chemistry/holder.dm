@@ -177,7 +177,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	/// The atom this holder is attached to
 	var/atom/my_atom = null
 	/// Current temp of the holder volume
-	var/chem_temp = 150
+	var/chem_temp = 300
 	///pH of the whole system
 	var/ph = CHEMICAL_NORMAL_PH
 	///Current pressure of the container
@@ -238,12 +238,13 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
  * * added_ph - override to force a pH when added
  * * override_base_ph - ingore the present pH of the reagent, and instead use the default (i.e. if buffers/reactions alter it)
  * * ignore splitting - Don't call the process that handles reagent spliting in a mob (impure/inverse) - generally leave this false unless you care about REAGENTS_DONOTSPLIT flags (see reagent defines)
+ * * phases - sets the reagent to start with the input phase profile. Accepts either a list of set up phases, or a single phase define
  */
-/datum/reagents/proc/add_reagent(reagent, amount, list/data=null, reagtemp = DEFAULT_REAGENT_TEMPERATURE, added_purity = null, added_ph, no_react = FALSE, override_base_ph = FALSE, ignore_splitting = FALSE)
+/datum/reagents/proc/add_reagent(reagent, amount, list/data=null, reagtemp = DEFAULT_REAGENT_TEMPERATURE, added_purity = null, added_ph, no_react = FALSE, override_base_ph = FALSE, ignore_splitting = FALSE, phases = null)
 	if(!isnum(amount) || !amount)
 		return FALSE
 
-	if(amount <= CHEMICAL_QUANTISATION_LEVEL)//To prevent small amount problems.
+	if(amount <= CHEMICAL_VOLUME_ROUNDING && !is_reacting)//To prevent small amount problems.
 		return FALSE
 
 	var/datum/reagent/glob_reagent = GLOB.chemical_reagents_list[reagent]
@@ -288,18 +289,26 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			iter_reagent.purity = ((iter_reagent.creation_purity * iter_reagent.volume) + (added_purity * amount)) /(iter_reagent.volume + amount) //This should add the purity to the product
 			iter_reagent.creation_purity = iter_reagent.purity
 			iter_reagent.ph = ((iter_reagent.ph*(iter_reagent.volume))+(added_ph*amount))/(iter_reagent.volume+amount)
+			//Sort phases based on input
+			if(islist(phases))
+				iter_reagent.merge_phases(phases)
+			else if(phases)
+				iter_reagent.set_phase_percent(phases, 1 + (amount/iter_reagent.volume))
+			//If no phase input then it's just more of the current
 			iter_reagent.volume += round(amount, CHEMICAL_QUANTISATION_LEVEL)
 			update_total()
 
 			iter_reagent.on_merge(data, amount)
+			var/update_temp
 			if(reagtemp != cached_temp)
 				var/new_heat_capacity = heat_capacity()
 				if(new_heat_capacity)
-					set_temperature(((old_heat_capacity * cached_temp) + (iter_reagent.specific_heat * amount * reagtemp)) / new_heat_capacity)
-				else
-					set_temperature(reagtemp)
-
+					update_temp = ((old_heat_capacity * cached_temp) + (iter_reagent.specific_heat * amount * reagtemp)) / new_heat_capacity
+			//Needs to be before to set up signals for physical states - reagtemp is the incoming holder temp
 			SEND_SIGNAL(src, COMSIG_REAGENTS_ADD_REAGENT, iter_reagent, amount, reagtemp, data, no_react)
+			//Then we set after - so phases can be updated
+			if(phases || update_temp)
+				set_temperature(update_temp)
 			if(!no_react && !is_reacting) //To reduce the amount of calculations for a reaction the reaction list is only updated on a reagents addition.
 				handle_reactions()
 			return TRUE
@@ -312,6 +321,13 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	new_reagent.purity = added_purity
 	new_reagent.creation_purity = added_purity
 	new_reagent.ph = added_ph
+
+	if(islist(phases))
+		new_reagent.phase_states = phases
+	else if(phases)
+		new_reagent.hard_set_to_phase(phases)
+	else
+		new_reagent.resolve_phase(chem_temp, pressure)
 
 	if(data)
 		new_reagent.data = data
@@ -327,16 +343,19 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	if(QDELETED(new_reagent))
 		stack_trace("Attempted to add [new_reagent.type] to a holder - only for it to fail at update total.")
 		return FALSE
+
+	var/update_temp
 	if(reagtemp != cached_temp)
 		var/new_heat_capacity = heat_capacity()
 		if(new_heat_capacity)
-			set_temperature(((old_heat_capacity * cached_temp) + (new_reagent.specific_heat * amount * reagtemp)) / new_heat_capacity)
-		else
-			set_temperature(reagtemp)
+			update_temp = ((old_heat_capacity * cached_temp) + (new_reagent.specific_heat * amount * reagtemp)) / new_heat_capacity
 
-	new_reagent.resolve_phase(chem_temp, pressure)
-
+	//This needs to be BEFORE set_temperature - as set_temperature calls phase updates, reagtemp is incomming temperature
 	SEND_SIGNAL(src, COMSIG_REAGENTS_NEW_REAGENT, new_reagent, amount, reagtemp, data, no_react)
+	//We want this to be updated for every addition - so our phases can be checked.
+	if(phases || update_temp)
+		set_temperature(update_temp)
+
 	if(!no_react)
 		handle_reactions()
 	return TRUE
@@ -391,6 +410,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 
 			cached_reagent.volume -= amount
 			update_total()
+			check_reagent_phase()
 			if(!safety)//So it does not handle reactions when it need not to
 				handle_reactions()
 			SEND_SIGNAL(src, COMSIG_REAGENTS_REM_REAGENT, QDELING(cached_reagent) ? reagent : cached_reagent, amount)
@@ -540,13 +560,30 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 /**
  * Checks to see if the holder has gas reagents in the turf it occupies
  */
-/datum/reagents/proc/has_in_air(reagent)
+/datum/reagents/proc/has_in_air(reagent, amount)
 	var/datum/gas_mixture/gas_mix = my_atom.return_air()
 	for(var/gas_id as anything in gas_mix.gases)
 		if(reagent == GLOB.gas_to_reagent[gas_id])
 			return TRUE
+	var/obj/phase_object/mist/misty = locate() in get_turf(my_atom)
+	if(misty)
+		misty.phase_controller.center_holder.has_reagent(reagent, amount)
 	return FALSE
 
+/**
+ * removes a reagent from the local air around the atom
+ */
+/datum/reagents/proc/remove_reagent_from_air(reagent, amount)
+	var/datum/gas_mixture/gas_mix = my_atom.return_air()
+	for(var/gas_id as anything in gas_mix.gases)
+		if(reagent == GLOB.gas_to_reagent[gas_id])
+			gas_mix.remove_specific(gas_id, amount * REAGENT_VOL_TO_GAS_MOLARITY)
+			return TRUE
+	var/obj/phase_object/mist/misty = locate() in get_turf(my_atom)
+	if(misty)
+		misty.phase_controller.center_holder.remove_reagent(reagent, amount)
+		return TRUE
+	return FALSE
 
 /**
  * Transfer some stuff from this holder to a target object
@@ -609,7 +646,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 				trans_data = copy_data(reagent)
 			if(reagent.intercept_reagents_transfer(R, cached_amount))//Use input amount instead.
 				continue
-			R.add_reagent(reagent.type, transfer_amount * multiplier, trans_data, chem_temp, reagent.purity, reagent.ph, no_react = TRUE, ignore_splitting = reagent.chemical_flags & REAGENT_DONOTSPLIT) //we only handle reaction after every reagent has been transfered.
+			R.add_reagent(reagent.type, transfer_amount * multiplier, trans_data, chem_temp, reagent.purity, reagent.ph, no_react = TRUE, ignore_splitting = reagent.chemical_flags & REAGENT_DONOTSPLIT, phases = reagent.phase_states) //we only handle reaction after every reagent has been transfered.
 			if(methods)
 				if(istype(target_atom, /obj/item/organ))
 					R.expose_single(reagent, target, methods, part, show_message)
@@ -633,7 +670,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 				transfer_amount = reagent.volume
 			if(reagent.intercept_reagents_transfer(R, cached_amount))//Use input amount instead.
 				continue
-			R.add_reagent(reagent.type, transfer_amount * multiplier, trans_data, chem_temp, reagent.purity, reagent.ph, no_react = TRUE, ignore_splitting = reagent.chemical_flags & REAGENT_DONOTSPLIT) //we only handle reaction after every reagent has been transfered.
+			R.add_reagent(reagent.type, transfer_amount * multiplier, trans_data, chem_temp, reagent.purity, reagent.ph, no_react = TRUE, ignore_splitting = reagent.chemical_flags & REAGENT_DONOTSPLIT, phases = reagent.phase_states) //we only handle reaction after every reagent has been transfered.
 			to_transfer = max(to_transfer - transfer_amount , 0)
 			if(methods)
 				if(istype(target_atom, /obj/item/organ))
@@ -684,7 +721,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			if(current_reagent.intercept_reagents_transfer(holder, cached_amount))//Use input amount instead.
 				break
 			force_stop_reagent_reacting(current_reagent)
-			holder.add_reagent(current_reagent.type, amount, trans_data, chem_temp, current_reagent.purity, current_reagent.ph, no_react = TRUE, ignore_splitting = current_reagent.chemical_flags & REAGENT_DONOTSPLIT)
+			holder.add_reagent(current_reagent.type, amount, trans_data, chem_temp, current_reagent.purity, current_reagent.ph, no_react = TRUE, ignore_splitting = current_reagent.chemical_flags & REAGENT_DONOTSPLIT, phases = current_reagent.phase_states)
 			remove_reagent(current_reagent.type, amount, 1)
 			break
 
@@ -717,7 +754,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		var/copy_amount = reagent.volume * part
 		if(preserve_data)
 			trans_data = reagent.data
-		R.add_reagent(reagent.type, copy_amount * multiplier, trans_data, added_purity = reagent.purity, added_ph = reagent.ph, no_react = TRUE, ignore_splitting = reagent.chemical_flags & REAGENT_DONOTSPLIT)
+		R.add_reagent(reagent.type, copy_amount * multiplier, trans_data, added_purity = reagent.purity, added_ph = reagent.ph, no_react = TRUE, ignore_splitting = reagent.chemical_flags & REAGENT_DONOTSPLIT, phases = reagent.phase_states)
 
 	//pass over previous ongoing reactions before handle_reactions is called
 	transfer_reactions(R)
@@ -736,7 +773,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 	var/change = (multiplier - 1) //Get the % change
 	for(var/datum/reagent/reagent as anything in cached_reagents)
 		if(change > 0)
-			add_reagent(reagent.type, reagent.volume * change, added_purity = reagent.purity, ignore_splitting = reagent.chemical_flags & REAGENT_DONOTSPLIT)
+			add_reagent(reagent.type, reagent.volume * change, added_purity = reagent.purity, ignore_splitting = reagent.chemical_flags & REAGENT_DONOTSPLIT, phases = reagent.phase_states)
 		else
 			remove_reagent(reagent.type, abs(reagent.volume * change)) //absolute value to prevent a double negative situation (removing -50% would be adding 50%)
 
@@ -1318,7 +1355,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		else
 			total_volume += reagent.volume
 	recalculate_sum_ph()
-	check_reagent_phase()
+	//check_reagent_phase()
 
 /* 			~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~									 	 /
  *			~~~		Phase/pressure methods		~~~		search tag:REAGENT_PRESSURE	 	 /

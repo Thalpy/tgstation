@@ -351,8 +351,10 @@ Primarily used in reagents/reaction_agents
 	var/needs_update = FALSE
 	var/unchanged = 0
 	for(var/datum/reagent_phase/phase as anything in phase_states) //We prioritise the first phases in the list
+		//Bloomin' rounding errors
 		if(phase_states[phase] > 1)
 			message_admins("Input phase [phase.phase] is giving funky input ratios [phase_states[phase]]")
+			phase_states[phase] = 1
 		if(sum_ratio >= 1)
 			//target_list[phase] = 0
 			//We're at our limit - but we still need to track what we're removing from
@@ -408,7 +410,6 @@ Primarily used in reagents/reaction_agents
 		message_admins("Reagent [type] is attempting to create matter from nothing! (positive changes with nothing to take it from)")
 		message_admins(debug)
 		//check_phase_ratio(debug)
-		return
 	if(!negative_budget.len || !positive_budget.len) //No changes!
 		return FALSE
 	debug += "TOTAL: Adding a total vol of [positive_changes].\n"
@@ -472,6 +473,9 @@ Primarily used in reagents/reaction_agents
 
 ///Calls the tick proc on each of the phases - so that their extra effects work
 /datum/reagent/proc/phase_tick(delta_time)
+	if(delta_time > 10) //Lag crusher
+		resolve_phase(holder.chem_temp, holder.pressure)
+		return FALSE
 	var/needs_update = FALSE
 	for(var/datum/reagent_phase/phase as anything in phase_states)
 		if(phase_states[phase] == 0) //Don't process empty phases
@@ -510,6 +514,26 @@ Primarily used in reagents/reaction_agents
 				check_phase_ratio()
 			return TRUE
 	return FALSE
+
+///Sets the reagent's phase to be 100% of the input phase
+/datum/reagent/proc/hard_set_to_phase(phase, check_ratio = TRUE)
+	for(var/datum/reagent_phase/phase_state in phase_states)
+		if(phase == phase_state.phase)
+			phase_states[phase_state] = 1
+		else
+			phase_states[phase_state] = 0
+	if(check_ratio)
+		check_phase_ratio()
+	return TRUE
+
+///Merges two phase_state profiles together - should work even if src doesn't have the same phases as input - will just merge the ones it has
+/datum/reagent/proc/merge_phases(list/input_phase, input_phase_vol, check_ratio = TRUE)
+	for(var/datum/reagent_phase/phase_state in phase_states)
+		phase_states[phase_state] *= volume
+		for(var/datum/reagent_phase/input_phase_state in input_phase)
+			if(input_phase_state.phase == phase_state.phase)
+				phase_states[phase_state] += input_phase[input_phase_state] * input_phase_vol
+	check_phase_ratio()
 
 ///Checks to make sure that the ratio values for all the phases are
 /datum/reagent/proc/check_phase_ratio(debug = FALSE)
