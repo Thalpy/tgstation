@@ -7,14 +7,18 @@
 	//the reagent type this thing is
 	var/reagent_type
 
-/obj/item/stack/solid_phase_object/Initialize(mapload, new_amount, merge, list/mat_override, mat_amt, datum/reagent/reagent)
+/obj/item/stack/solid_phase_object/New(loc, volume, datum/reagent/reagent)
 	create_reagents(SOLID_PHYSICAL_PHASE_CAPACITY) //5u per 1 stack
 	name += " [reagent.name]"
 	desc += " [reagent.name]"
 	reagent_type = reagent.type
 	color = reagent.color
 	grind_results = list(reagent.type = REAGENT_VOL_TO_STACK_MULTIPLIER)
-	reagents.add_reagent(reagent.type, amount, added_purity = reagent.purity)
+	reagents.add_reagent(reagent.type, amount*REAGENT_VOL_TO_STACK_MULTIPLIER, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+	//Have to do this before init - init checks stacks which requires a reagents datum to be set up
+	. = ..()
+
+/obj/item/stack/solid_phase_object/Initialize(mapload, new_amount, merge, list/mat_override, mat_amt)
 	. = ..()
 	RegisterSignal(reagents, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES, .proc/reagent_process)
 	//Check physical states and setup temp signals, but otherwise doesn't need processing
@@ -26,7 +30,7 @@
 
 /obj/item/stack/solid_phase_object/use(used, transfer = FALSE, check = TRUE) // return 0 = borked; return 1 = had enough
 	if(used * REAGENT_VOL_TO_STACK_MULTIPLIER > reagents.total_volume)
-		stack_trace("Jank is happening for solid phase objects - it should be [REAGENT_VOL_TO_STACK_MULTIPLIER]u per 1 stack. Attempted to use [used*REAGENT_VOL_TO_STACK_MULTIPLIER]u of total volume [reagents.total_volume]")
+		to_chat(usr, "There's not enough reagent in the [src] to make a table!")
 		return FALSE
 	. = ..()
 	reagents.remove_all(used*REAGENT_VOL_TO_STACK_MULTIPLIER)
@@ -37,6 +41,8 @@
 	if(reagents.total_volume <= 0)
 		qdel(src)
 
+//		~~~		solid		~~~
+
 /obj/item/stack/solid_phase_object/solid
 	name = "Solid"
 	desc = "A solid mass of" //Reagent name here
@@ -45,7 +51,8 @@
 	reagent_type = SOLID
 
 /obj/item/stack/solid_phase_object/solid/can_merge(obj/item/stack/check)
-	if(!..()) //if parent checks are false
+	. = ..()
+	if(!.) //if parent checks are false
 		return FALSE
 	var/obj/item/stack/solid_phase_object/check_phase = check
 	if(check_phase.reagents.has_reagent(reagent_type))
@@ -56,6 +63,8 @@
 	var/transfer = ..()
 	reagents.add_reagent(reagent_type, transfer*REAGENT_VOL_TO_STACK_MULTIPLIER)
 	color = mix_color_from_reagents(reagents.reagent_list)
+
+//		~~~		Powder		~~~
 
 /obj/item/stack/solid_phase_object/powder
 	name = "Powdered"
@@ -68,6 +77,8 @@
 	var/obj/item/stack/solid_phase_object/incoming_phase = incoming_stack
 	incoming_phase.reagents.trans_to(reagents, transfer*REAGENT_VOL_TO_STACK_MULTIPLIER)
 	color = mix_color_from_reagents(reagents.reagent_list)
+
+//		~~~		Table		~~~
 
 /obj/structure/table/reagents
 	name = "Reagent Table"

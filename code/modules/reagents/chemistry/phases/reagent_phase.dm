@@ -61,7 +61,7 @@
 //Default phase gas
 /datum/reagent_phase/gas
 	phase = GAS
-	density = 0.5
+	density = 0.2
 	reaction_speed_modifier = REAGENT_GAS_DEFAULT_SPEED
 	color = "#5fcffc"
 	calculation_method = null //This is the default so we want to know if we're accidentally calculating
@@ -119,7 +119,7 @@
 /datum/reagent_phase/solid
 	phase = SOLID
 	reaction_speed_modifier = 0.8
-	density = 1.5
+	density = 2
 	color = "#e4f582"
 	calculation_method = /datum/phase_calc/linear/mass_effect/solid
 
@@ -134,7 +134,7 @@
 /datum/reagent_phase/solid/powder
 	phase = POWDER
 	reaction_speed_modifier = 0.95
-	density = 1.4
+	density = 1.8
 	color = "#e78c4f"
 	calculation_method = null //uses solid - we want this to crash if it tries to calculate otherwise
 

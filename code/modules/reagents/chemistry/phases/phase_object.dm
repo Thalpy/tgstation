@@ -122,7 +122,7 @@ Todo:
 	var/mob/living/carbon/carby = moveable
 	if(!iscarbon(carby))
 		return
-	if(phase_controller.signal_procs[carby]?[COMSIG_CARBON_BREATHE_TURF]) //If we've already flagged a signal - then don't reflag
+	if(phase_controller.signal_procs[carby] && phase_controller.signal_procs[carby][COMSIG_CARBON_BREATHE_TURF]) //If we've already flagged a signal - then don't reflag
 		message_admins("Mob already flagged")
 		return
 	phase_controller.RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, /datum/physical_phase/gas_phase/proc/carbon_breathe)

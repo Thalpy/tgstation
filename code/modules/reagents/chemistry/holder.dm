@@ -1368,8 +1368,10 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 				continue
 			//How much "raw" molar volume we have before normalising it
 			sum_moles += (reagent.volume * reagent.phase_states[phase]) / phase.density
-	//What maniac has base first
-	sum_pressure += (log(sum_moles) * R_IDEAL_GAS_EQUATION * chem_temp) / maximum_volume //p = nRT/V
+			message_admins("[reagent.type], [phase.phase], sum: [sum_moles], vol: [reagent.volume], %: [reagent.phase_states[phase]], density: [phase.density]")
+	//Because ss13 only has volume - I have to make up fantasy moles - This means that moles are dynamically changing with phase changes in this system, so we normalise to 100 volume
+	sum_pressure += (log(sum_moles/(maximum_volume/100)) * R_IDEAL_GAS_EQUATION * chem_temp) / 100 //p = nRT/V
+	message_admins("pressure: [sum_pressure], moles: [log(sum_moles/(maximum_volume/100))], temp: [chem_temp]")
 	//Keep our volume relative to the total - so gaps are treated as 0 pressure.
 	sum_pressure *= total_volume / maximum_volume
 	//Update our pressure
