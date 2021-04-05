@@ -225,16 +225,17 @@
  * * source_turf - the location we're creating the mist in
  */
 /proc/create_mist(datum/reagent/reagent, amount, turf/source_turf)
-	var/obj/phase_object/mist/misty = locate() in source_turf
+	var/atom/movable/phase_object/mist/misty = locate() in source_turf
 	if(!misty)
 		//If there's no mist on our target turf - we want to join to an existing mist if it exists.
 		for(var/turf/nearby_turf in source_turf.GetAtmosAdjacentTurfs())
-			var/obj/phase_object/mist/misty_lass = locate() in nearby_turf
+			var/atom/movable/phase_object/mist/misty_lass = locate() in nearby_turf
 			if(misty_lass)
 				if(QDELETED(misty_lass.phase_controller))
 					continue
-				new /obj/phase_object/mist(source_turf, misty_lass.phase_controller.center_holder, misty_lass.phase_controller)
+				new /atom/movable/phase_object/mist(source_turf, misty_lass.phase_controller.center_holder, misty_lass.phase_controller)
 				misty_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = GAS)
+				reagent.holder.remove_reagent(reagent.type, amount, phase = GAS)
 				return TRUE
 		//If we're truly alone, create a new one
 		new /datum/physical_phase/gas_phase(reagent, amount, reagent.holder?.my_atom, source_turf)
@@ -260,15 +261,15 @@
  * * source_turf - the location we're creating the liquid in
  */
 /proc/create_liquid(datum/reagent/reagent, amount, turf/source_turf)
-	var/obj/phase_object/liquid/moist = locate() in source_turf
+	var/atom/movable/phase_object/liquid/moist = locate() in source_turf
 	if(!moist)
 		//If there's no liquid on our target turf - we want to join to an existing liquid if it exists.
 		for(var/turf/nearby_turf in source_turf.GetAtmosAdjacentTurfs())
-			var/obj/phase_object/liquid/moist_lass = locate() in nearby_turf
+			var/atom/movable/phase_object/liquid/moist_lass = locate() in nearby_turf
 			if(moist_lass)
 				if(QDELETED(moist_lass.phase_controller))
 					continue
-				new /obj/phase_object/liquid(source_turf, moist_lass.phase_controller.center_holder, moist_lass.phase_controller)
+				new /atom/movable/phase_object/liquid(source_turf, moist_lass.phase_controller.center_holder, moist_lass.phase_controller)
 				moist_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = GAS)
 				return
 		//If we're truly alone, create a new one

@@ -1,4 +1,4 @@
-/obj/phase_object
+/atom/movable/phase_object
 	name = "blank phase cell"
 	desc = "This shouldn't be here, please let fermi know!"
 	icon = 'icons/obj/chemical.dmi'
@@ -20,6 +20,7 @@
 	var/pressure
 	///What our cell capacity is
 	var/cell_capacity
+	///What color we are
 
 //For solids - see solid phase object
 
@@ -29,10 +30,10 @@ Todo:
 - prevent this obj from being grabbed
 */
 
-/obj/phase_object/New(turf/open/input_turf, datum/reagents/center_holder, datum/physical_phase/input_phase_controller)
+/atom/movable/phase_object/New(turf/open/input_turf, datum/reagents/center_holder, datum/physical_phase/input_phase_controller)
 	if(!isopenturf(input_turf))
 		stack_trace("Input turf isn't open!")
-	for(var/obj/phase_object/other_phase in input_turf.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
+	for(var/atom/movable/phase_object/other_phase in input_turf.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
 		if(other_phase == src || other_phase.phase != phase)
 			continue
 		stack_trace("Attempting to move into occupied turf with a new physical phase! This shouldn't be happening!!")
@@ -53,14 +54,14 @@ Todo:
 	phase_controller.current_cells += src
 	//Check to see if we're on the interface - i.e we're not surrounded.
 	for(var/turf/nearby_turf in input_turf.GetAtmosAdjacentTurfs())
-		var/obj/phase_object/phasey = locate() in nearby_turf //This seems bad
+		var/atom/movable/phase_object/phasey = locate() in nearby_turf //This seems bad
 		if(phasey?.phase == phase) //If there's a mist there, keep looking
 			continue
 		phase_controller.add_to_interface(src)
 		break
 	//I might've meant to add something else here
 
-/obj/phase_object/Destroy()
+/atom/movable/phase_object/Destroy()
 	UnregisterSignal(local_turf, COMSIG_ATOM_ENTERED)
 	UnregisterSignal(local_turf, COMSIG_ATOM_EXIT)
 	phase_controller.remove_from_interface(src)
@@ -69,36 +70,37 @@ Todo:
 		phase_controller.center_holder.remove_all(phase_controller.cell_capacity)
 	..()
 
-/obj/phase_object/proc/add_reagent(datum/reagent/reagent, amount)
+/atom/movable/phase_object/proc/add_reagent(datum/reagent/reagent, amount)
 	if(!phase_controller.center_holder.total_volume) //This should be deleting in the next process
 		return
 	phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = phase)
 	phase_controller.shift_center(x, y, z, amount)
 
-/obj/phase_object/proc/remove_reagent(datum/reagent/reagent, amount)
+/atom/movable/phase_object/proc/remove_reagent(datum/reagent/reagent, amount)
 	phase_controller.center_holder.remove_reagent(reagent.type, amount, phase = phase)
 	if(phase_controller.center_holder.total_volume)
 		phase_controller.shift_center(x, y, z, -amount)
 
-/obj/phase_object/proc/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
+/atom/movable/phase_object/proc/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
 	SIGNAL_HANDLER
 
-/obj/phase_object/proc/unflag_entree(atom/oldLoc, atom/movable/moveable, atom/newLoc)
+/atom/movable/phase_object/proc/unflag_entree(atom/oldLoc, atom/movable/moveable, atom/newLoc)
 	SIGNAL_HANDLER
 
-/obj/phase_object/proc/recalculate_color(new_color, interface_alpha)
+/atom/movable/phase_object/proc/recalculate_color(new_color, interface_alpha)
 	SIGNAL_HANDLER
 	color = new_color
 	if(interfacial)
+		color = "#ff0000"
 		alpha = interface_alpha
 
-/obj/phase_object/proc/update_cell_temperature(datum/source, datum/gas_mixture/air, exposed_temperature)
+/atom/movable/phase_object/proc/update_cell_temperature(datum/source, datum/gas_mixture/air, exposed_temperature)
 	SIGNAL_HANDLER
 	temperature = exposed_temperature
 	pressure = air.return_pressure()
 	phase_controller.update_temp_pressure = TRUE
 
-/obj/phase_object/proc/begone(source)
+/atom/movable/phase_object/proc/begone(source)
 	SIGNAL_HANDLER
 	if(!QDELETED(src)) //This can occur when an explosion takes out a bunch of cells
 		cost_on_delete = FALSE
@@ -106,25 +108,25 @@ Todo:
 	//else
 	//	stack_trace("attempted to delete phase cell when it was flagged to delete")
 
-/obj/phase_object/mist
+/atom/movable/phase_object/mist
 	name = "mist cloud"
 	desc = "A cloud of gaseous reagents. Be careful of breathing this stuff in!"
 	icon_state = "gas_phase"
 	phase = GAS
-	layer = ABOVE_NORMAL_TURF_LAYER
+	layer = ABOVE_OBJ_LAYER
 	cell_capacity = 20
 
-/obj/phase_object/mist/New(turf/open/input_turf, datum/reagents/center_holder, datum/physical_phase/input_phase_controller)
+/atom/movable/phase_object/mist/New(turf/open/input_turf, datum/reagents/center_holder, datum/physical_phase/input_phase_controller)
 	. = ..()
 	for(var/mob/living/carbon/carby in input_turf.contents)
 		phase_controller.RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, /datum/physical_phase/gas_phase/proc/carbon_breathe)
 
-/obj/phase_object/mist/Destroy(force)
+/atom/movable/phase_object/mist/Destroy(force)
 	for(var/mob/living/carbon/carby in local_turf.contents)
 		phase_controller.UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
 	return ..()
 
-/obj/phase_object/mist/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
+/atom/movable/phase_object/mist/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
 	. = ..()
 	var/mob/living/carbon/carby = moveable
 	if(!iscarbon(carby))
@@ -134,21 +136,21 @@ Todo:
 		return
 	phase_controller.RegisterSignal(carby, COMSIG_CARBON_BREATHE_TURF, /datum/physical_phase/gas_phase/proc/carbon_breathe)
 
-/obj/phase_object/mist/unflag_entree(atom/oldLoc, atom/movable/moveable, atom/newLoc)
+/atom/movable/phase_object/mist/unflag_entree(atom/oldLoc, atom/movable/moveable, atom/newLoc)
 	. = ..()
 	var/mob/living/carbon/carby = moveable
 	if(!iscarbon(carby))
 		return
 	var/turf/open/new_turf = get_turf(newLoc)
-	for(var/obj/phase_object/other in new_turf.contents) // is if(mist in contents) faster?
+	for(var/atom/movable/phase_object/other in new_turf.contents) // is if(mist in contents) faster?
 		if(other.reagents == reagents)
 			return //we're in the same cloud so keep checking their breath
 	phase_controller.UnregisterSignal(carby, COMSIG_CARBON_BREATHE_TURF)
 
-/obj/phase_object/liquid
+/atom/movable/phase_object/liquid
 	name = "Liquid"
 	desc = "A pool of liquid reagents. Be careful of swimming in this stuff!"
 	icon_state = "liquid_phase"
 	alpha = 200
 	phase = LIQUID
-	layer = ABOVE_OPEN_TURF_LAYER
+	layer = HIGH_OBJ_LAYER

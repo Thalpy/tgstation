@@ -320,6 +320,7 @@ Primarily used in reagents/reaction_agents
 	if(!isopenturf(source_turf))
 		return FALSE
 	create_mist(src, amount, source_turf) //create mist also merges them
+	return TRUE
 
 ///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this from it's holder
 ///Processes the phases of each reagent in the holder

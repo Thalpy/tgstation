@@ -561,13 +561,16 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
  * Checks to see if the holder has gas reagents in the turf it occupies
  */
 /datum/reagents/proc/has_in_air(reagent, amount)
+	if(istype(reagent, /datum/reagent/gas))
+		return FALSE
 	var/datum/gas_mixture/gas_mix = my_atom.return_air()
 	for(var/gas_id as anything in gas_mix.gases)
 		if(reagent == GLOB.gas_to_reagent[gas_id])
 			return TRUE
-	var/obj/phase_object/mist/misty = locate() in get_turf(my_atom)
+	var/atom/movable/phase_object/mist/misty = locate() in get_turf(my_atom)
 	if(misty)
 		misty.phase_controller.center_holder.has_reagent(reagent, amount)
+		return TRUE
 	return FALSE
 
 /**
@@ -579,7 +582,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 		if(reagent == GLOB.gas_to_reagent[gas_id])
 			gas_mix.remove_specific(gas_id, amount * REAGENT_VOL_TO_GAS_MOLARITY)
 			return TRUE
-	var/obj/phase_object/mist/misty = locate() in get_turf(my_atom)
+	var/atom/movable/phase_object/mist/misty = locate() in get_turf(my_atom)
 	if(misty)
 		misty.phase_controller.center_holder.remove_reagent(reagent, amount)
 		return TRUE

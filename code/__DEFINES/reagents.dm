@@ -136,6 +136,8 @@
 #define WITHDRAWAL_STAGE2_END_CYCLE 120
 #define WITHDRAWAL_STAGE3_START_CYCLE 121
 
+///Phase defines:
+
 ///The constant used to adjust pressure values in reagent holders when sealed. It's a fudge because we don't have moles, so I adjust numbers to make up fantasy moles
 #define FERMI_FUDGE_PRESSURE_CONSTANT 1
 ///The ratio for converting reagent volume into atoms moles
@@ -144,7 +146,8 @@
 #define STANDARD_REAGENT_DIFFUSE_RATE 0.1
 ///The maximum volume a solid phase object can hold
 #define SOLID_PHYSICAL_PHASE_CAPACITY 250
-
+///How much 1 single stack unit equals (i.e. 1 stack item = 5u reagent)
+#define REAGENT_STACK_VOL_TO_MULTIPLIER 5
 ///Phase state profiles for easy use
 ///Reagent is a liquid at room temperature
 #define PHASE_STATE_LIQUID_DETERMINISTIC list(/datum/reagent_phase/plasma = 0, /datum/reagent_phase/solid/powder = 0, /datum/reagent_phase/solid = 0, /datum/reagent_phase/liquid = 1, /datum/reagent_phase/gas = 0)

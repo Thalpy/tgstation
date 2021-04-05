@@ -478,15 +478,16 @@
 /obj/item/stack/proc/split_stack(mob/user, amount)
 	if(!use(amount, TRUE, FALSE))
 		return null
-	var/obj/item/stack/F = new type(user? user : drop_location(), amount, FALSE, mats_per_unit)
-	. = F
-	F.copy_evidences(src)
+	var/obj/item/stack/new_stack = new type(user? user : drop_location(), amount, FALSE, mats_per_unit)
+	. = new_stack
+	new_stack.copy_evidences(src)
 	if(user)
-		if(!user.put_in_hands(F, merge_stacks = FALSE))
-			F.forceMove(user.drop_location())
+		if(!user.put_in_hands(new_stack, merge_stacks = FALSE))
+			new_stack.forceMove(user.drop_location())
 		add_fingerprint(user)
-		F.add_fingerprint(user)
+		new_stack.add_fingerprint(user)
 	zero_amount()
+	return new_stack
 
 /obj/item/stack/attackby(obj/item/W, mob/user, params)
 	if(can_merge(W))

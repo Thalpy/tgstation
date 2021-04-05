@@ -1,5 +1,3 @@
-#define REAGENT_VOL_TO_STACK_MULTIPLIER 5
-
 /obj/item/stack/solid_phase_object
 	name = "error"
 	desc = "A solid mass of error" //Reagent name here
@@ -9,12 +7,13 @@
 
 /obj/item/stack/solid_phase_object/New(loc, volume, datum/reagent/reagent)
 	create_reagents(SOLID_PHYSICAL_PHASE_CAPACITY) //5u per 1 stack
-	name += " [reagent.name]"
-	desc += " [reagent.name]"
-	reagent_type = reagent.type
-	color = reagent.color
-	grind_results = list(reagent.type = REAGENT_VOL_TO_STACK_MULTIPLIER)
-	reagents.add_reagent(reagent.type, amount*REAGENT_VOL_TO_STACK_MULTIPLIER, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
+	if(reagent)
+		name += " [reagent.name]"
+		desc += " [reagent.name]"
+		reagent_type = reagent.type
+		color = reagent.color
+		grind_results = list(reagent.type = REAGENT_STACK_VOL_TO_MULTIPLIER)
+		reagents.add_reagent(reagent.type, amount*REAGENT_STACK_VOL_TO_MULTIPLIER, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph)
 	//Have to do this before init - init checks stacks which requires a reagents datum to be set up
 	. = ..()
 
@@ -28,19 +27,28 @@
 	QDEL_NULL(reagents)
 	. = ..()
 
+/obj/item/stack/solid_phase_object/split_stack(mob/user, amount)
+	var/obj/item/stack/solid_phase_object/target = ..()
+	target.name = name
+	target.desc = name
+	target.reagent_type = type
+	target.color = color
+	target.grind_results = grind_results
+	reagents.trans_to(target.reagents, amount * REAGENT_STACK_VOL_TO_MULTIPLIER)
+
 /obj/item/stack/solid_phase_object/use(used, transfer = FALSE, check = TRUE) // return 0 = borked; return 1 = had enough
-	if(used * REAGENT_VOL_TO_STACK_MULTIPLIER > reagents.total_volume)
+	if(used * REAGENT_STACK_VOL_TO_MULTIPLIER > reagents.total_volume)
 		to_chat(usr, "There's not enough reagent in the [src] to make a table!")
 		return FALSE
 	. = ..()
-	reagents.remove_all(used*REAGENT_VOL_TO_STACK_MULTIPLIER)
+	reagents.remove_all(used*REAGENT_STACK_VOL_TO_MULTIPLIER)
 	return TRUE
 
 /obj/item/stack/solid_phase_object/proc/reagent_process()
 	color = mix_color_from_reagents(reagents.reagent_list)
 	if(reagents.total_volume <= 0)
 		qdel(src)
-	amount = round(reagents.total_volume * REAGENT_VOL_TO_STACK_MULTIPLIER)
+	amount = round(reagents.total_volume * REAGENT_STACK_VOL_TO_MULTIPLIER)
 
 //		~~~		solid		~~~
 
@@ -62,7 +70,7 @@
 
 /obj/item/stack/solid_phase_object/solid/merge(obj/item/stack/S, limit)
 	var/transfer = ..()
-	reagents.add_reagent(reagent_type, transfer*REAGENT_VOL_TO_STACK_MULTIPLIER)
+	reagents.add_reagent(reagent_type, transfer*REAGENT_STACK_VOL_TO_MULTIPLIER)
 	color = mix_color_from_reagents(reagents.reagent_list)
 
 //		~~~		Powder		~~~
@@ -76,7 +84,7 @@
 /obj/item/stack/solid_phase_object/powder/merge(obj/item/stack/incoming_stack, limit)
 	var/transfer = ..()
 	var/obj/item/stack/solid_phase_object/incoming_phase = incoming_stack
-	incoming_phase.reagents.trans_to(reagents, transfer*REAGENT_VOL_TO_STACK_MULTIPLIER)
+	incoming_phase.reagents.trans_to(reagents, transfer*REAGENT_STACK_VOL_TO_MULTIPLIER)
 	color = mix_color_from_reagents(reagents.reagent_list)
 
 //		~~~		Table		~~~

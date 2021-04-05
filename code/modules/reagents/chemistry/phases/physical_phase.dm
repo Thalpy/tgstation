@@ -18,9 +18,9 @@
 	///The location atom we're tied to
 	var/atom/source
 	///How big our cell cloud is - i.e. the total number of cells we're on - affects diffuse rate
-	var/list/obj/phase_object/current_cells = list()
+	var/list/atom/movable/phase_object/current_cells = list()
 	///The interfacial cells - all cells within the center are considered "stable" so we don't process their movement
-	var/list/obj/phase_object/interface_cells = list()
+	var/list/atom/movable/phase_object/interface_cells = list()
 	///The type of phase object we create
 	var/phase_object
 	///The type of phase we are
@@ -50,7 +50,7 @@
 	//RegisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES, .proc/process)
 	RegisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PRESSURE, .proc/update_temp_and_pressure)
 	//Add reagents
-	var/obj/phase_object/new_phase_object = new phase_object(location, center_holder, src)
+	var/atom/movable/phase_object/new_phase_object = new phase_object(location, center_holder, src)
 	//Set atom first - so we know where we are, so we can explode
 	center_holder.my_atom = new_phase_object
 	//Then add reagent
@@ -72,7 +72,7 @@
 	//UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PHYSICAL_STATES)
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PRESSURE)
 	UnregisterSignal(source, COMSIG_PARENT_QDELETING)
-	for(var/obj/phase_object/del_phase_object)
+	for(var/atom/movable/phase_object/del_phase_object)
 		del_phase_object.begone()
 	for(var/datum/reagent/reagent as anything in center_holder.reagent_list)
 		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY) //Clean up signals
@@ -89,7 +89,7 @@
 	var/turf/source_turf = get_turf(source)
 	///If we're deleting our source, but can't find where it was, then we recenter to any avalible interface as a backup
 	if(!source_turf)
-		var/obj/phase_object/cell = pick(current_cells)
+		var/atom/movable/phase_object/cell = pick(current_cells)
 		source_turf = locate(center_x, center_y, cell.z)
 		if(!source_turf)
 			stack_trace("Unable to find backup turf when phase cell of type [phase_type] was destroyed!")
@@ -97,8 +97,8 @@
 			return FALSE
 	//Now we process through the current cells and find the closest replacement
 	var/min_dist = 999
-	var/obj/phase_object/target
-	for(var/obj/phase_object/phasey in current_cells)
+	var/atom/movable/phase_object/target
+	for(var/atom/movable/phase_object/phasey in current_cells)
 		if(QDELETED(phasey)) //Incase an explosion took out a chunk
 			continue
 		var/phasey_distance = get_dist(source_turf, phasey)
@@ -134,7 +134,7 @@
 		return
 	//If not, lets move over!
 	var/turf/location = locate(target_x, target_y, source_z)
-	for(var/obj/phase_object/other_phase in location.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
+	for(var/atom/movable/phase_object/other_phase in location.contents) //Optimisation possible here, deal with multiple loops over contents in 1 loop
 		if(other_phase.phase != phase_type || other_phase.phase_controller != src)
 			continue
 		source = other_phase
@@ -177,7 +177,7 @@
 		return
 	var/sum_pressure
 	var/sum_temp
-	for(var/obj/phase_object/this_phase_object in current_cells)
+	for(var/atom/movable/phase_object/this_phase_object in current_cells)
 		sum_pressure += this_phase_object.pressure
 		sum_temp += this_phase_object.temperature
 	///We hard set here - since we don't want to use the updating proc methods - they call extra things we don't want atm
@@ -206,16 +206,16 @@
 /datum/physical_phase/proc/update_cells_color()
 	var/new_color = mix_color_from_reagents(center_holder.reagent_list)
 	var/new_alpha = 150 + (((center_holder.total_volume % cell_capacity)/20) * 100)
-	var/obj/phase_object/check = interface_cells[1]
+	var/atom/movable/phase_object/check = interface_cells[1]
 	if(check.color == new_color && check.alpha == new_alpha)
 		return
-	for(var/obj/phase_object/this_phase_object)
+	for(var/atom/movable/phase_object/this_phase_object)
 		this_phase_object.recalculate_color(new_color, new_alpha)
 
 /datum/physical_phase/proc/create_new_cell(num_cells)
 	var/min_dist = 999
-	var/obj/phase_object/target
-	for(var/obj/phase_object/phasey in interface_cells)
+	var/atom/movable/phase_object/target
+	for(var/atom/movable/phase_object/phasey in interface_cells)
 		var/phasey_distance = get_dist(source, phasey)
 		if(phasey_distance < min_dist)
 			target = phasey
@@ -226,7 +226,7 @@
 	//we have a target
 	var/created_new = FALSE
 	for(var/turf/new_turf in target.local_turf.GetAtmosAdjacentTurfs())
-		var/obj/phase_object/phasey_boi = locate() in new_turf //Don't spread smoke where there's already smoke!
+		var/atom/movable/phase_object/phasey_boi = locate() in new_turf //Don't spread smoke where there's already smoke!
 		if(phasey_boi && phasey_boi?.phase_controller.center_holder != center_holder) //Is there another cell there that's of a different controller? Lets greet them if so
 			merge_into(phasey_boi.phase_controller.center_holder, cell_capacity)
 			return TRUE
@@ -242,8 +242,8 @@
 
 /datum/physical_phase/proc/remove_cell(num_cells) //This isn't working!
 	var/max_dist = -999
-	var/obj/phase_object/target
-	for(var/obj/phase_object/phasey in interface_cells)
+	var/atom/movable/phase_object/target
+	for(var/atom/movable/phase_object/phasey in interface_cells)
 		var/phasey_distance = get_dist(source, phasey)
 		if(phasey_distance > max_dist)
 			target = phasey
@@ -264,18 +264,18 @@
 		message_admins("physical phase is being deleted when there's still live cells in it")
 	qdel(src)
 
-/datum/physical_phase/proc/add_to_interface(obj/phase_object/phasey)
+/datum/physical_phase/proc/add_to_interface(atom/movable/phase_object/phasey)
 	if(phasey in interface_cells)
 		return
 	interface_cells += phasey
 	phasey.interfacial = TRUE
 
-/datum/physical_phase/proc/remove_from_interface(obj/phase_object/phasey)
+/datum/physical_phase/proc/remove_from_interface(atom/movable/phase_object/phasey)
 	//debug - should work with this removed
 	var/turf/t_loc = get_turf(phasey)
 	var/adjacent_filled
 	for(var/turf/T in t_loc.GetAtmosAdjacentTurfs())
-		var/obj/phase_object/other_phasey = locate() in T //Don't spread smoke where there's already smoke!
+		var/atom/movable/phase_object/other_phasey = locate() in T //Don't spread smoke where there's already smoke!
 		if(other_phasey)
 			add_to_interface(other_phasey)
 			continue
@@ -290,7 +290,7 @@
 //		~~~			GAS PHASES			~~~
 
 /datum/physical_phase/gas_phase
-	phase_object = /obj/phase_object/mist
+	phase_object = /atom/movable/phase_object/mist
 	phase_type = GAS
 	cell_capacity = 20
 
@@ -316,7 +316,7 @@
 //		~~~			LIQUID PHASES			~~~
 
 /datum/physical_phase/liquid_phase
-	phase_object = /obj/phase_object/liquid
+	phase_object = /atom/movable/phase_object/liquid
 	phase_type = LIQUID
 	cell_capacity = 25
 
