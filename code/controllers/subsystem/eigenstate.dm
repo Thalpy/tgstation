@@ -40,6 +40,7 @@ SUBSYSTEM_DEF(eigenstates)
 		RegisterSignal(target, COMSIG_CLOSET_INSERT, .proc/use_eigenlinked_atom)
 		RegisterSignal(target, COMSIG_PARENT_QDELETING, .proc/remove_eigen_entry)
 		RegisterSignal(target, COMSIG_ATOM_TOOL_ACT(TOOL_WELDER), .proc/tool_interact)
+		RegisterSignal(target, COMSIG_ATOM_TOOL_ACT(TOOL_WRENCH), .proc/tool_interact)
 		target.RegisterSignal(target, COMSIG_EIGENSTATE_ACTIVATE, /obj/structure/closet/proc/bust_open)
 		ADD_TRAIT(target, TRAIT_BANNED_FROM_CARGO_SHUTTLE, src)
 		var/obj/item = target
@@ -73,6 +74,7 @@ SUBSYSTEM_DEF(eigenstates)
 		COMSIG_PARENT_QDELETING,
 		COMSIG_CLOSET_INSERT,
 		COMSIG_ATOM_TOOL_ACT(TOOL_WELDER),
+		COMSIG_ATOM_TOOL_ACT(TOOL_WRENCH),
 	))
 	REMOVE_TRAIT(entry, TRAIT_BANNED_FROM_CARGO_SHUTTLE, src)
 	entry.UnregisterSignal(entry, COMSIG_EIGENSTATE_ACTIVATE) //This is a signal on the object itself so we have to call it from that
