@@ -169,7 +169,7 @@
 	thermic_constant = -0.25
 	H_ion_release = -0.02
 	rate_up_lim = 15
-	purity_min = 0.32
+	purity_min = 0.3
 
 /datum/chemical_reaction/medicine/ephedrine/overheated(datum/reagents/holder, datum/equilibrium/equilibrium, vol_added)
 	default_explode(holder, equilibrium.reacted_vol, 0, 25)

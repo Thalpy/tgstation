@@ -873,7 +873,7 @@
 	purity = REAGENT_STANDARD_PURITY
 	impure_chem = /datum/reagent/impurity/mannitol
 	inverse_chem_val = 0.45
-	impure_chem = /datum/reagent/impurity/mannitol
+	inverse_chem = /datum/reagent/impurity/mannitol
 
 /datum/reagent/medicine/mannitol/on_mob_life(mob/living/carbon/owner, delta_time, times_fired)
 	owner.adjustOrganLoss(ORGAN_SLOT_BRAIN, -2 * REM * delta_time * normalise_creation_purity())
