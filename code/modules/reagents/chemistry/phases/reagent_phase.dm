@@ -35,11 +35,11 @@
 
 ///When this current phase has a certain volume removed from it
 /datum/reagent_phase/proc/transition_from(datum/reagent/reagent, volume)
-	SEND_SIGNAL(reagent, COMSIG_PHASE_CHANGE_AWAY, volume, src)
+	return SEND_SIGNAL(reagent, COMSIG_PHASE_CHANGE_AWAY, volume, src)
 
 ///When this current phase has a certain volume added to it
 /datum/reagent_phase/proc/transition_to(datum/reagent/reagent, volume)
-	SEND_SIGNAL(reagent, COMSIG_PHASE_CHANGE_INTO, volume, src)
+	return SEND_SIGNAL(reagent, COMSIG_PHASE_CHANGE_INTO, volume, src)
 
 ///Calculates how much of this current phase we should be aiming to convert into
 /datum/reagent_phase/proc/determine_phase_percent(datum/reagent/reagent, temperature, pressure)

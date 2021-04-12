@@ -275,7 +275,7 @@
 ///from base of [/datum/reagent_phase/proc/tick]: (reagents, reagent, phase, delta_time, physical_phase)
 #define	COMSIG_LIQUID_PHASE_TICK "phase_tick"
 	///If we want an update following this call
-	#define COMPONENT_REAGENT_REQUEST_UPDATE (1<<0)
+	#define COMPONENT_REAGENT_REQUEST_UPDATE 1
 
 
 // Lighting:

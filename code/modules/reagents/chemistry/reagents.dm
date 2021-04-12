@@ -320,6 +320,7 @@ Primarily used in reagents/reaction_agents
 	if(!isopenturf(source_turf))
 		return FALSE
 	create_mist(src, amount, source_turf) //create mist also merges them
+	//holder.remove_reagent(src.type, amount) // this should be done above in create_mist!
 	return TRUE
 
 ///DO NOT CALL THIS DIRECTLY! Use check_reagent_phase() to start this from it's holder
@@ -418,23 +419,27 @@ Primarily used in reagents/reaction_agents
 	for(var/datum/reagent_phase/phase in negative_budget) //Negative
 		var/change = positive_changes / negative_budget.len
 		if(negative_budget[phase] < change)
+			if(phase.transition_from(src, phase_states[phase] * volume) & REAGENT_BLOCK_PHASE_CHANGE) //If we don't want a transition
+				continue
 			positive_changes -= change - negative_budget[phase]
-			phase.transition_from(src, phase_states[phase] * volume)
 			phase_states[phase] = 0
 			debug += "[phase.phase] Removing [change - negative_budget[phase]] by setting it to 0 and removing [change - negative_budget[phase]] from positive changes [positive_changes]. Final ratio: [phase_states[phase]]\n"
 		else
-			phase.transition_from(src, change * volume)
+			if(phase.transition_from(src, change * volume) & REAGENT_BLOCK_PHASE_CHANGE)
+				continue
 			phase_states[phase] = phase_states[phase] - change
 			debug += "[phase.phase] Removing [(positive_changes / negative_budget.len)] and setting it to [phase_states[phase]]\n"
 
 	for(var/datum/reagent_phase/phase in positive_budget) //Positive
 		if(positive_budget[phase] > positive_changes)
-			phase.transition_to(src, positive_changes * volume)
+			if(phase.transition_to(src, positive_changes * volume) & REAGENT_BLOCK_PHASE_CHANGE)
+				continue
 			phase_states[phase] = phase_states[phase] + positive_changes
 			debug += "[phase.phase] is overbudget, adding [positive_changes] instead of [positive_budget[phase]] and setting positive change to 0, final ratio: [phase_states[phase]]\n"
 			positive_changes = 0
 		else
-			phase.transition_to(src, positive_budget[phase] * volume)
+			if(phase.transition_to(src, positive_budget[phase] * volume) & REAGENT_BLOCK_PHASE_CHANGE)
+				continue
 			phase_states[phase] = phase_states[phase] + positive_budget[phase]
 			positive_changes -= positive_budget[phase]
 			debug += "[phase.phase] adding [positive_budget[phase]] and setting positive budget to [positive_changes] with final ratio of [phase_states[phase]]\n"

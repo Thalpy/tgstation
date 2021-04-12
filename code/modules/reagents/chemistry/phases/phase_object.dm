@@ -72,14 +72,16 @@ Todo:
 
 /atom/movable/phase_object/proc/add_reagent(datum/reagent/reagent, amount)
 	if(!phase_controller.center_holder.total_volume) //This should be deleting in the next process
-		return
+		return FALSE
 	phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = phase)
 	phase_controller.shift_center(x, y, z, amount)
+	return TRUE
 
 /atom/movable/phase_object/proc/remove_reagent(datum/reagent/reagent, amount)
 	phase_controller.center_holder.remove_reagent(reagent.type, amount, phase = phase)
 	if(phase_controller.center_holder.total_volume)
 		phase_controller.shift_center(x, y, z, -amount)
+	return TRUE
 
 /atom/movable/phase_object/proc/flag_entree(atom/newLoc, atom/movable/moveable, atom/oldLoc)
 	SIGNAL_HANDLER
@@ -90,9 +92,12 @@ Todo:
 /atom/movable/phase_object/proc/recalculate_color(new_color, interface_alpha)
 	SIGNAL_HANDLER
 	color = new_color
-	if(interfacial)
-		color = "#ff0000"
-		alpha = interface_alpha
+	if(GLOB.Debug2)
+		if(interfacial)
+			color = "#ff0000"
+			alpha = interface_alpha
+		if(phase_controller.source == src)
+			color = "#00ff00"
 
 /atom/movable/phase_object/proc/update_cell_temperature(datum/source, datum/gas_mixture/air, exposed_temperature)
 	SIGNAL_HANDLER
@@ -104,6 +109,7 @@ Todo:
 	SIGNAL_HANDLER
 	if(!QDELETED(src)) //This can occur when an explosion takes out a bunch of cells
 		cost_on_delete = FALSE
+		phase_controller.current_cells -= src
 		qdel(src)
 	//else
 	//	stack_trace("attempted to delete phase cell when it was flagged to delete")
