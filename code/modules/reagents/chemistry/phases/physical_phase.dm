@@ -75,7 +75,7 @@
 	for(var/atom/movable/phase_object/del_phase_object)
 		del_phase_object.begone()
 	for(var/datum/reagent/reagent as anything in center_holder.reagent_list)
-		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY) //Clean up signals
+		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_INTO) //Clean up signals
 	QDEL_NULL(center_holder)
 	SSphase_states.active_state_controllers[phase_type] -= src
 	return ..()
@@ -142,34 +142,36 @@
 
 /datum/physical_phase/proc/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
 	SIGNAL_HANDLER
-	RegisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY, .proc/on_phase_change_away)
+	RegisterSignal(reagent, COMSIG_PHASE_CHANGE_INTO, .proc/on_phase_change_away)
 	reagent.chemical_flags |= REAGENT_STATE_PHYSICAL_PHASE
 
 //Signal works
 /datum/physical_phase/proc/on_del_reagent(source, datum/reagent/reagent)
 	SIGNAL_HANDLER
-	UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_AWAY)
+	UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_INTO)
 
-/datum/physical_phase/proc/on_phase_change_away(datum/reagent/reagent, amount, datum/reagent_phase/phase_into)
+/datum/physical_phase/proc/on_phase_change_away(datum/reagent/reagent, amount, phase, datum/reagent_phase/phase)
 	SIGNAL_HANDLER
 	if(phase_type == phase_into.phase)
 		message_admins("This is being flagged when it shouldn't")
 		return
 	center_holder.remove_reagent(reagent, amount, phase = phase_type)
-	switch(phase_into.phase)
+	switch(phase)
 		if(GAS)
 			create_mist(reagent, amount, get_turf(source))
 		if(LIQUID)
 			create_liquid(reagent, amount, get_turf(source))
 			message_admins("creating liquid")
 		if(SOLID)
-			create_solid(reagent, amount, get_turf(source))
+			create_solid(reagent, amount, get_turf(pick(current_cells )))
 			message_admins("creating solid")
 		if(IONISED)
 			var/zap_flags = ZAP_MOB_DAMAGE | ZAP_OBJ_DAMAGE | ZAP_MOB_STUN
-			tesla_zap(source, 7, amount*100, zap_flags)
+			tesla_zap(source, 7, amount*100, zap_flags) //This is a placeholder because I don't like how expensive this is. (i.e. change to reagent "zapping" into people)
 		if(POWDER)
 			stack_trace("Attemptung to transform INTO powder from [phase_type] in a physical phase. This shouldn't be happening!")
+	quick_remove_phase_volume(amount)
+	return COMPONENT_REAGENT_OVERRIDE_PHASE_CHANGE
 	//process()
 
 /datum/physical_phase/proc/update_temp_and_pressure()
@@ -240,7 +242,7 @@
 		remove_from_interface(target)
 	return created_new
 
-/datum/physical_phase/proc/remove_cell(num_cells) //This isn't working!
+/datum/physical_phase/proc/remove_cell(num_cells) //This isn't working?
 	var/max_dist = -999
 	var/atom/movable/phase_object/target
 	for(var/atom/movable/phase_object/phasey in interface_cells)
@@ -303,10 +305,11 @@
 	UnregisterSignal(reagent, COMSIG_REAGENT_DIFFUSE)
 
 ///Diffusion creates mist - so we want to stop that! - works
+///This is how the phase itself is updated
 /datum/physical_phase/gas_phase/proc/override_reagent_diffusion(datum/reagent, volume)
 	center_holder.remove_reagent(reagent.type, volume/2)
 	process()
-	return COMPONENT_REAGENT_BLOCK_DIFFUSE
+	return COMPONENT_REAGENT_OVERRIDE_DIFFUSE //Because diffusion will always occur and require updates
 
 /datum/physical_phase/gas_phase/proc/carbon_breathe(source, mob/living/carbon/carby, delta_time)
 	SIGNAL_HANDLER
@@ -315,6 +318,8 @@
 
 //		~~~			LIQUID PHASES			~~~
 
+///Liquids are processed using their tick() method attached to their reagent_phase datum
+///Similar to diffuse - except we do want to stop sometimes
 /datum/physical_phase/liquid_phase
 	phase_object = /atom/movable/phase_object/liquid
 	phase_type = LIQUID
@@ -323,7 +328,6 @@
 /datum/physical_phase/liquid_phase/on_new_reagent(source, datum/reagent/reagent, amount, reagtemp, data, no_react)
 	RegisterSignal(reagent, COMSIG_LIQUID_PHASE_TICK, .proc/liquid_tick)
 	. = ..()
-
 
 /datum/physical_phase/liquid_phase/on_del_reagent(source, datum/reagent/reagent)
 	. = ..()

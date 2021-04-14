@@ -260,8 +260,11 @@
 ///from base of [/datum/reagent/proc/diffuse]: (amount)
 #define COMSIG_REAGENT_DIFFUSE "reagent_diffuse"
 	///Prevents the diffusion from happening if returned DOES NOT WORK FOR GASSES i.e. reagent/gas subtypes!! This is intentional because we don't want gas reagents to become mists
-	#define COMPONENT_REAGENT_BLOCK_DIFFUSE (1<<0)
-
+	///will set the phase to not request an update
+	#define COMPONENT_REAGENT_BLOCK_DIFFUSE 1
+	///Prevents the standard diffusion mechanics, but still requests an update
+	#define COMPONENT_REAGENT_OVERRIDE_DIFFUSE 2
+	///If you want the standard mechanics after the signal, return null, or nothing
 
 //Phase states and phase related procs
 ///from base of add this later because confuse code
@@ -276,6 +279,8 @@
 #define	COMSIG_LIQUID_PHASE_TICK "phase_tick"
 	///If we want an update following this call
 	#define COMPONENT_REAGENT_REQUEST_UPDATE 1
+	///If we want to override the phase change
+	#define COMPONENT_REAGENT_OVERRIDE_PHASE_CHANGE 2
 
 
 // Lighting:

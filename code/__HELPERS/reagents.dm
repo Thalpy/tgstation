@@ -270,7 +270,7 @@
 				if(QDELETED(moist_lass.phase_controller))
 					continue
 				new /atom/movable/phase_object/liquid(source_turf, moist_lass.phase_controller.center_holder, moist_lass.phase_controller)
-				moist_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = GAS)
+				moist_lass.phase_controller.center_holder.add_reagent(reagent.type, amount, reagtemp = reagent.holder.chem_temp, added_purity = reagent.purity, added_ph = reagent.ph, phases = LIQUID)
 				return
 		//If we're truly alone, create a new one
 		new /datum/physical_phase/liquid_phase(reagent, amount, reagent.holder.my_atom, source_turf)

@@ -412,7 +412,7 @@ GLOBAL_LIST_INIT(gas_to_reagent, list(
 			update_total()
 			check_reagent_phase()
 			if(!safety)//So it does not handle reactions when it need not to
-				handle_reactions()
+				handle_reactions() //Genuinely - is there ever a case where removing a reagent will allow a reaction? Can we remove this?
 			SEND_SIGNAL(src, COMSIG_REAGENTS_REM_REAGENT, QDELING(cached_reagent) ? reagent : cached_reagent, amount)
 
 			return TRUE

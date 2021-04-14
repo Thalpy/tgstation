@@ -35,11 +35,11 @@
 
 ///When this current phase has a certain volume removed from it
 /datum/reagent_phase/proc/transition_from(datum/reagent/reagent, volume)
-	return SEND_SIGNAL(reagent, COMSIG_PHASE_CHANGE_AWAY, volume, src)
+	return SEND_SIGNAL(reagent, COMSIG_PHASE_CHANGE_AWAY, volume, phase, src)
 
 ///When this current phase has a certain volume added to it
 /datum/reagent_phase/proc/transition_to(datum/reagent/reagent, volume)
-	return SEND_SIGNAL(reagent, COMSIG_PHASE_CHANGE_INTO, volume, src)
+	return SEND_SIGNAL(reagent, COMSIG_PHASE_CHANGE_INTO, volume, phase, src)
 
 ///Calculates how much of this current phase we should be aiming to convert into
 /datum/reagent_phase/proc/determine_phase_percent(datum/reagent/reagent, temperature, pressure)
@@ -80,9 +80,10 @@
 ///liquid to gas
 /datum/reagent_phase/gas/transition_from(datum/reagent/reagent, volume, delta_time)
 	reagent.holder.adjust_specific_reagent_ph(reagent.type, ) //FERMI_TODO
+	return ..()
 	//SEND_SIGNAL(src, COMSIG_PHASE_CHANGE_AWAY, volume)
 
-/datum/reagent_phase/gas/transition_to(datum/reagent/reagent, volume)
+///datum/reagent_phase/gas/transition_to(datum/reagent/reagent, volume)
 
 /datum/reagent_phase/gas/make_physical(datum/reagent/reagent, volume, turf/target_turf)
 	if(volume <= 0.05)
@@ -103,7 +104,7 @@
 	reagent.check_phase_ratio()
 	return TRUE
 
-///Default liquid
+///Default liquids
 /datum/reagent_phase/liquid
 	phase = LIQUID
 	density = 1

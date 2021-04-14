@@ -149,7 +149,7 @@ GLOBAL_LIST_INIT(name2reagent, build_name2reagent())
 ///Use this to set up tests specific to a reagent subtype
 /datum/reagent/proc/unit_test()
 	. = list()
-	if(name == "Reagent")
+	if(name == "Reagent" || "")
 		. += "Generic failure: [type] has no name, if this is not a true reagent please add it to the GLOB.fake_reagent_blacklist."
 	if(!mass)
 		. += "Generic failure: [type] is missing a mass."
@@ -314,8 +314,12 @@ Primarily used in reagents/reaction_agents
  * * Amount: how much was diffused
  */
 /datum/reagent/proc/diffuse(amount)
-	if(SEND_SIGNAL(src, COMSIG_REAGENT_DIFFUSE, amount) & COMPONENT_REAGENT_BLOCK_DIFFUSE)
-		return FALSE
+	var/signal_return = SEND_SIGNAL(src, COMSIG_REAGENT_DIFFUSE, amount)
+	switch(signal_return)
+		if(COMPONENT_REAGENT_OVERRIDE_DIFFUSE)
+			return TRUE
+		if(COMPONENT_REAGENT_BLOCK_DIFFUSE)
+			return FALSE
 	var/turf/source_turf = get_turf(holder.my_atom)
 	if(!isopenturf(source_turf))
 		return FALSE
@@ -419,26 +423,26 @@ Primarily used in reagents/reaction_agents
 	for(var/datum/reagent_phase/phase in negative_budget) //Negative
 		var/change = positive_changes / negative_budget.len
 		if(negative_budget[phase] < change)
-			if(phase.transition_from(src, phase_states[phase] * volume) & REAGENT_BLOCK_PHASE_CHANGE) //If we don't want a transition
+			if(phase.transition_from(src, phase_states[phase] * volume) & COMPONENT_REAGENT_OVERRIDE_PHASE_CHANGE) //If we don't want a transition
 				continue
 			positive_changes -= change - negative_budget[phase]
 			phase_states[phase] = 0
 			debug += "[phase.phase] Removing [change - negative_budget[phase]] by setting it to 0 and removing [change - negative_budget[phase]] from positive changes [positive_changes]. Final ratio: [phase_states[phase]]\n"
 		else
-			if(phase.transition_from(src, change * volume) & REAGENT_BLOCK_PHASE_CHANGE)
+			if(phase.transition_from(src, change * volume) & COMPONENT_REAGENT_OVERRIDE_PHASE_CHANGE)
 				continue
 			phase_states[phase] = phase_states[phase] - change
 			debug += "[phase.phase] Removing [(positive_changes / negative_budget.len)] and setting it to [phase_states[phase]]\n"
 
 	for(var/datum/reagent_phase/phase in positive_budget) //Positive
 		if(positive_budget[phase] > positive_changes)
-			if(phase.transition_to(src, positive_changes * volume) & REAGENT_BLOCK_PHASE_CHANGE)
+			if(phase.transition_to(src, positive_changes * volume) & COMPONENT_REAGENT_OVERRIDE_PHASE_CHANGE)
 				continue
 			phase_states[phase] = phase_states[phase] + positive_changes
 			debug += "[phase.phase] is overbudget, adding [positive_changes] instead of [positive_budget[phase]] and setting positive change to 0, final ratio: [phase_states[phase]]\n"
 			positive_changes = 0
 		else
-			if(phase.transition_to(src, positive_budget[phase] * volume) & REAGENT_BLOCK_PHASE_CHANGE)
+			if(phase.transition_to(src, positive_budget[phase] * volume) & COMPONENT_REAGENT_OVERRIDE_PHASE_CHANGE)
 				continue
 			phase_states[phase] = phase_states[phase] + positive_budget[phase]
 			positive_changes -= positive_budget[phase]
@@ -584,6 +588,10 @@ Primarily used in reagents/reaction_agents
 		modifiers["sum_purity"] += phase.purity_modifier * phase_states[phase]
 	return modifiers
 
+///Generally do not use this - this is an optimisation method!
+///Seriously use remove_reagents() on the holder datum instead.
+/datum/reagent/proc/quick_remove_phase_volume(amount)
+	volume -= amount
 
 //Debug stuff
 /datum/reagent/proc/message_plasma_admins(message)
