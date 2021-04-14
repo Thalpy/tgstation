@@ -73,7 +73,7 @@
 	UnregisterSignal(center_holder, COMSIG_REAGENTS_UPDATE_PRESSURE)
 	UnregisterSignal(source, COMSIG_PARENT_QDELETING)
 	for(var/atom/movable/phase_object/del_phase_object)
-		del_phase_object.begone()
+		qdel(del_phase_object)
 	for(var/datum/reagent/reagent as anything in center_holder.reagent_list)
 		UnregisterSignal(reagent, COMSIG_PHASE_CHANGE_INTO) //Clean up signals
 	QDEL_NULL(center_holder)
@@ -152,7 +152,7 @@
 
 /datum/physical_phase/proc/on_phase_change_away(datum/reagent/reagent, amount, phase, datum/reagent_phase/phase)
 	SIGNAL_HANDLER
-	if(phase_type == phase_into.phase)
+	if(phase_type == phase)
 		message_admins("This is being flagged when it shouldn't")
 		return
 	center_holder.remove_reagent(reagent, amount, phase = phase_type)
@@ -170,7 +170,7 @@
 			tesla_zap(source, 7, amount*100, zap_flags) //This is a placeholder because I don't like how expensive this is. (i.e. change to reagent "zapping" into people)
 		if(POWDER)
 			stack_trace("Attemptung to transform INTO powder from [phase_type] in a physical phase. This shouldn't be happening!")
-	quick_remove_phase_volume(amount)
+	reagent.quick_remove_phase_volume(amount)
 	return COMPONENT_REAGENT_OVERRIDE_PHASE_CHANGE
 	//process()
 
